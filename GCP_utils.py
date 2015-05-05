@@ -3,6 +3,10 @@
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
+import numpy as np
+from sklearn_utils import *
+
+
 def find_bounds(f, y):
 	x = 1
 	while((f(x) < y)  and (x<2047483646)):
@@ -30,8 +34,7 @@ def binary_search(f, y, lo, hi):
 	if (f(hi) - y < y - f(lo)):
 		return hi
 	else:
-		return lo
-		
+		return lo	
 		
 
 def l1_cross_distances(X):

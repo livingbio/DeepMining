@@ -17,7 +17,7 @@ from scipy import stats
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
 from GCP_utils import find_bounds,binary_search,l1_cross_distances,sq_exponential,exponential_periodic
-from sklearn_utils import array2d, check_random_state, check_arrays
+from sklearn_utils import *
 
 MACHINE_EPSILON = np.finfo(np.double).eps
 
@@ -867,10 +867,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raise ValueError("nugget must be either a scalar "
 							 "or array of length n_samples.")
 
-		# Check optimizer
-		if not self.optimizer in self._optimizer_types:
-			raise ValueError("optimizer should be one of %s"
-							 % self._optimizer_types)
 
 		# Force random_start type to int
 		self.random_start = int(self.random_start)

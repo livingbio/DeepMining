@@ -3,7 +3,8 @@
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
-
+import numpy as np
+from random import randint, randrange
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
