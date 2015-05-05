@@ -12,111 +12,15 @@ from scipy import linalg, optimize
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics.pairwise import manhattan_distances
 from sklearn.gaussian_process import regression_models as regression
-from sklearn.gaussian_process import correlation_models as correlation
 from scipy.stats import norm
 from scipy import stats
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
-
+from GCP_utils import find_bounds,binary_search,l1_cross_distances,sq_exponential,exponential_periodic
+from sklearn_utils import array2d, check_random_state, check_arrays
 
 MACHINE_EPSILON = np.finfo(np.double).eps
 
-def find_bounds(f, y):
-	x = 1
-	while((f(x) < y)  and (x<2047483646)):
-		x = x * 2
-	lo = -100 
-	if (x ==1):
-		lo = -100
-	else:
-		lo = x/2
-	if(x > 1000):
-		x = min(x,2047483646)
-	return lo, x
-	
-def binary_search(f, y, lo, hi):
-	delta = np.float(hi-lo)/10000.
-	while lo <= hi:
-		x = (lo + hi) / 2
-		#print(x)
-		if f(x) < y:
-			lo = x + delta
-		elif f(x) > y:
-			hi = x - delta
-		else:
-			return x 
-	if (f(hi) - y < y - f(lo)):
-		return hi
-	else:
-		return lo
-		
-		
-
-def l1_cross_distances(X):
-    """
-    Computes the nonzero componentwise L1 cross-distances between the vectors
-    in X.
-
-    Parameters
-    ----------
-
-    X: array_like
-        An array with shape (n_samples, n_features)
-
-    Returns
-    -------
-
-    D: array with shape (n_samples * (n_samples - 1) / 2, n_features)
-        The array of componentwise L1 cross-distances.
-
-    ij: arrays with shape (n_samples * (n_samples - 1) / 2, 2)
-        The indices i and j of the vectors in X associated to the cross-
-        distances in D: D[k] = np.abs(X[ij[k, 0]] - Y[ij[k, 1]]).
-    """
-    X = array2d(X)
-    n_samples, n_features = X.shape
-    n_nonzero_cross_dist = n_samples * (n_samples - 1) // 2
-    ij = np.zeros((n_nonzero_cross_dist, 2), dtype=np.int)
-    D = np.zeros((n_nonzero_cross_dist, n_features))
-    ll_1 = 0
-    for k in range(n_samples - 1):
-        ll_0 = ll_1
-        ll_1 = ll_0 + n_samples - k - 1
-        ij[ll_0:ll_1, 0] = k
-        ij[ll_0:ll_1, 1] = np.arange(k + 1, n_samples)
-        D[ll_0:ll_1] = np.abs(X[k] - X[(k + 1):n_samples])
-
-    return D, ij
-	
-	
-def sq_exponential(theta,d):
-	return np.exp( - theta[0] * np.sum(d ** 2, axis=1)  )
-
-
-def exponential_periodic(theta,d):
-	t0 = theta[0] / 100.
-	t1 = theta[1] / 100.
-	t2 = theta[2] / 100.
-	t3 = theta[3]
-	t4 = theta[4]
-	t5 = theta[5]
-	t6 = theta[6]
-	t7 = theta[7]
-	#print(theta)
-	good_cond =  (t0 > 0) and (t1 > 0) and (t2 > 0) and (t6 > 0) 
-	c = (t0 + t1 + t2) * 5.
-	if(good_cond):
-		c1 = t0 * np.exp( - t3 * np.sum(d ** 2, axis=1)  )
-		c2 = t1 * np.exp( - (np.sum(d**2,axis=1)/(2.*t4*t4)) - 2*(np.sin(3.14 * np.sum( d, axis=1)) /t5)**2  )
-		c3 = t2 * ( (np.prod(1+ (d/t7)**2 ) )** (-t6))
-		if( np.sum( ((c1+c2+c3)/c) >= 1. ) >= 1):
-			print('Corr Error 1')
-			return np.zeros((d.shape[0]))
-		
-		return ((c1+c2+c3)/c)
-	else:
-		print('Corr Error 2')
-		return np.asarray([0.])
 
 
 class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
@@ -280,16 +184,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		'linear': regression.linear,
 		'quadratic': regression.quadratic}
 
-	_correlation_types = {
-		'absolute_exponential': correlation.absolute_exponential,
-		'squared_exponential': correlation.squared_exponential,
-		'generalized_exponential': correlation.generalized_exponential,
-		'cubic': correlation.cubic,
-		'linear': correlation.linear}
-
-	_optimizer_types = [
-		'fmin_cobyla',
-		'Welch']
 
 	def __init__(self, regr='constant', 
 				 corr='exponential_periodic',
@@ -391,17 +285,12 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		y = [ self.mapping(self.X[i],self.raw_y[i]) for i in range(size)]
 		y = np.asarray(y)
 		
-		# Normalize data or don't
-		if True:
-			y_mean = np.mean(y, axis=0)
-			y_std = np.std(y, axis=0)
-			y_std[y_std == 0.] = 1.
-			# center and scale Y if necessary
-			y = (y - y_mean) / y_std
-		else:
-			y_mean = np.zeros(1)
-			y_std = np.ones(1)
-		
+		# Normalize data
+		y_mean = np.mean(y, axis=0)
+		y_std = np.std(y, axis=0)
+		y_std[y_std == 0.] = 1.
+		y = (y - y_mean) / y_std
+
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
 		if (np.min(np.sum(D, axis=1)) == 0.
@@ -449,8 +338,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		Returns
 		-------
-		gp : self
-			A fitted Gaussian Process model object awaiting data to perform
+		gcp : self
+			A fitted Gaussian Copula Process model object awaiting data to perform
 			predictions.
 		"""
 		# Run input checks
@@ -489,6 +378,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
 
+		# initialize mapping only if needed, i.e. it hasn't be done 
+		# yet of if we want to optimize the GCP hyperparameters
 		if (self.try_optimize or (self.density_functions is None)):
 			self.init_mappings()
 		
@@ -574,9 +465,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 							  "for fit() "
 							  "which is %d.") % (X.shape[1], n_features))
 
-		# No memory management
-		# (evaluates all given points in a single batch run)
-
 		# Normalize input
 		if self.normalize:
 			X = (X - self.X_mean) / self.X_std
@@ -598,7 +486,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# Predictor
 		y = (self.y_mean + self.y_std * y_).reshape(n_eval, n_targets)
 
-		# transform the gaussian y to the real y
+		# transform the warped y, modeled as a Gaussian, to the real y
 		size = y.shape[0]
 		warped_y = np.copy(y)
 		real_y = [ self.mapping_inv(X[i],y[i][0]) for i in range(size)]
@@ -823,7 +711,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			The BLUP parameters associated to thetaOpt.
 		"""
 		
-
 		# Initialize output
 		best_optimal_theta = []
 		best_optimal_rlf_value = []
@@ -890,7 +777,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 											 maxfun=3000,
 											 #rhobeg=2.0,
 											 rhoend=0.1,
-											 #iprint=0
+											 iprint=0
 											 )
 					opt_minus_rlf = minus_reduced_likelihood_function(log10_opt)
 					#print(opt_minus_rlf)
@@ -987,360 +874,3 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		# Force random_start type to int
 		self.random_start = int(self.random_start)
-
-		
-		
-########################    Utilities from sklearn    ########################		
-		
-"""Utilities for input validation"""
-# Authors: Olivier Grisel
-#          Gael Varoquaux
-#          Andreas Mueller
-#          Lars Buitinck
-#          Alexandre Gramfort
-#          Nicolas Tresegnie
-# License: BSD 3 clause
-
-import warnings
-import numbers
-
-import numpy as np
-import scipy.sparse as sp
-
-from sklearn.externals import six
-from sklearn.utils.fixes import safe_copy
-
-
-class DataConversionWarning(UserWarning):
-    "A warning on implicit data conversions happening in the code"
-    pass
-
-warnings.simplefilter("always", DataConversionWarning)
-
-
-class NonBLASDotWarning(UserWarning):
-    "A warning on implicit dispatch to numpy.dot"
-    pass
-
-
-# Silenced by default to reduce verbosity. Turn on at runtime for
-# performance profiling.
-warnings.simplefilter('ignore', NonBLASDotWarning)
-
-
-def _assert_all_finite(X):
-    """Like assert_all_finite, but only for ndarray."""
-    X = np.asanyarray(X)
-    if (X.dtype.char in np.typecodes['AllFloat'] and not np.isfinite(X.sum())
-            and not np.isfinite(X).all()):
-        raise ValueError("Input contains NaN, infinity"
-                         " or a value too large for %r." % X.dtype)
-
-
-def assert_all_finite(X):
-    """Throw a ValueError if X contains NaN or infinity.
-
-    Input MUST be an np.ndarray instance or a scipy.sparse matrix."""
-
-    # First try an O(n) time, O(1) space solution for the common case that
-    # there everything is finite; fall back to O(n) space np.isfinite to
-    # prevent false positives from overflow in sum method.
-    _assert_all_finite(X.data if sp.issparse(X) else X)
-
-
-def safe_asarray(X, dtype=None, order=None, copy=False, force_all_finite=True):
-    """Convert X to an array or CSC/CSR/COO sparse matrix.
-
-    Prevents copying X when possible. Sparse matrices in CSR, CSC and COO
-    formats are passed through. Other sparse formats are converted to CSR
-    (somewhat arbitrarily).
-
-    If a specific compressed sparse format is required, use atleast2d_or_cs{c,r}
-    instead.
-    """
-    if sp.issparse(X):
-        if not isinstance(X, (sp.coo_matrix, sp.csc_matrix, sp.csr_matrix)):
-            X = X.tocsr()
-        elif copy:
-            X = X.copy()
-        if force_all_finite:
-            _assert_all_finite(X.data)
-        # enforces dtype on data array (order should be kept the same).
-        X.data = np.asarray(X.data, dtype=dtype)
-    else:
-        X = np.array(X, dtype=dtype, order=order, copy=copy)
-        if force_all_finite:
-            _assert_all_finite(X)
-    return X
-
-
-def as_float_array(X, copy=True, force_all_finite=True):
-    """Converts an array-like to an array of floats
-
-    The new dtype will be np.float32 or np.float64, depending on the original
-    type. The function can create a copy or modify the argument depending
-    on the argument copy.
-
-    Parameters
-    ----------
-    X : {array-like, sparse matrix}
-
-    copy : bool, optional
-        If True, a copy of X will be created. If False, a copy may still be
-        returned if X's dtype is not a floating point type.
-
-    Returns
-    -------
-    XT : {array, sparse matrix}
-        An array of type np.float
-    """
-    if isinstance(X, np.matrix) or (not isinstance(X, np.ndarray)
-                                    and not sp.issparse(X)):
-        return safe_asarray(X, dtype=np.float64, copy=copy,
-                            force_all_finite=force_all_finite)
-    elif sp.issparse(X) and X.dtype in [np.float32, np.float64]:
-        return X.copy() if copy else X
-    elif X.dtype in [np.float32, np.float64]:  # is numpy array
-        return X.copy('F' if X.flags['F_CONTIGUOUS'] else 'C') if copy else X
-    else:
-        return X.astype(np.float32 if X.dtype == np.int32 else np.float64)
-
-
-def array2d(X, dtype=None, order=None, copy=False, force_all_finite=True):
-    """Returns at least 2-d array with data from X"""
-    if sp.issparse(X):
-        raise TypeError('A sparse matrix was passed, but dense data '
-                        'is required. Use X.toarray() to convert to dense.')
-    X_2d = np.asarray(np.atleast_2d(X), dtype=dtype, order=order)
-    if force_all_finite:
-        _assert_all_finite(X_2d)
-    if X is X_2d and copy:
-        X_2d = safe_copy(X_2d)
-    return X_2d
-
-
-def _atleast2d_or_sparse(X, dtype, order, copy, sparse_class, convmethod,
-                         check_same_type, force_all_finite):
-    if sp.issparse(X):
-        if check_same_type(X) and X.dtype == dtype:
-            X = getattr(X, convmethod)(copy=copy)
-        elif dtype is None or X.dtype == dtype:
-            X = getattr(X, convmethod)()
-        else:
-            X = sparse_class(X, dtype=dtype)
-        if force_all_finite:
-            _assert_all_finite(X.data)
-        X.data = np.array(X.data, copy=False, order=order)
-    else:
-        X = array2d(X, dtype=dtype, order=order, copy=copy,
-                    force_all_finite=force_all_finite)
-    return X
-
-
-def atleast2d_or_csc(X, dtype=None, order=None, copy=False,
-                     force_all_finite=True):
-    """Like numpy.atleast_2d, but converts sparse matrices to CSC format.
-
-    Also, converts np.matrix to np.ndarray.
-    """
-    return _atleast2d_or_sparse(X, dtype, order, copy, sp.csc_matrix,
-                                "tocsc", sp.isspmatrix_csc,
-                                force_all_finite)
-
-
-def atleast2d_or_csr(X, dtype=None, order=None, copy=False,
-                     force_all_finite=True):
-    """Like numpy.atleast_2d, but converts sparse matrices to CSR format
-
-    Also, converts np.matrix to np.ndarray.
-    """
-    return _atleast2d_or_sparse(X, dtype, order, copy, sp.csr_matrix,
-                                "tocsr", sp.isspmatrix_csr,
-                                force_all_finite)
-
-
-def _num_samples(x):
-    """Return number of samples in array-like x."""
-    if not hasattr(x, '__len__') and not hasattr(x, 'shape'):
-        if hasattr(x, '__array__'):
-            x = np.asarray(x)
-        else:
-            raise TypeError("Expected sequence or array-like, got %r" % x)
-    return x.shape[0] if hasattr(x, 'shape') else len(x)
-
-
-def check_arrays(*arrays, **options):
-    """Check that all arrays have consistent first dimensions.
-
-    Checks whether all objects in arrays have the same shape or length.
-    By default lists and tuples are converted to numpy arrays.
-
-    It is possible to enforce certain properties, such as dtype, continguity
-    and sparse matrix format (if a sparse matrix is passed).
-
-    Converting lists to arrays can be disabled by setting ``allow_lists=True``.
-    Lists can then contain arbitrary objects and are not checked for dtype,
-    finiteness or anything else but length. Arrays are still checked
-    and possibly converted.
-
-
-    Parameters
-    ----------
-    *arrays : sequence of arrays or scipy.sparse matrices with same shape[0]
-        Python lists or tuples occurring in arrays are converted to 1D numpy
-        arrays, unless allow_lists is specified.
-
-    sparse_format : 'csr', 'csc' or 'dense', None by default
-        If not None, any scipy.sparse matrix is converted to
-        Compressed Sparse Rows or Compressed Sparse Columns representations.
-        If 'dense', an error is raised when a sparse array is
-        passed.
-
-    copy : boolean, False by default
-        If copy is True, ensure that returned arrays are copies of the original
-        (if not already converted to another format earlier in the process).
-
-    check_ccontiguous : boolean, False by default
-        Check that the arrays are C contiguous
-
-    dtype : a numpy dtype instance, None by default
-        Enforce a specific dtype.
-
-    allow_lists : bool
-        Allow lists of arbitrary objects as input, just check their length.
-        Disables
-
-    allow_nans : boolean, False by default
-        Allows nans in the arrays
-
-    allow_nd : boolean, False by default
-        Allows arrays of more than 2 dimensions.
-    """
-    sparse_format = options.pop('sparse_format', None)
-    if sparse_format not in (None, 'csr', 'csc', 'dense'):
-        raise ValueError('Unexpected sparse format: %r' % sparse_format)
-    copy = options.pop('copy', False)
-    check_ccontiguous = options.pop('check_ccontiguous', False)
-    dtype = options.pop('dtype', None)
-    allow_lists = options.pop('allow_lists', False)
-    allow_nans = options.pop('allow_nans', False)
-    allow_nd = options.pop('allow_nd', False)
-
-    if options:
-        raise TypeError("Unexpected keyword arguments: %r" % options.keys())
-
-    if len(arrays) == 0:
-        return None
-
-    n_samples = _num_samples(arrays[0])
-
-    checked_arrays = []
-    for array in arrays:
-        array_orig = array
-        if array is None:
-            # special case: ignore optional y=None kwarg pattern
-            checked_arrays.append(array)
-            continue
-        size = _num_samples(array)
-
-        if size != n_samples:
-            raise ValueError("Found array with dim %d. Expected %d"
-                             % (size, n_samples))
-
-        if not allow_lists or hasattr(array, "shape"):
-            if sp.issparse(array):
-                if sparse_format == 'csr':
-                    array = array.tocsr()
-                elif sparse_format == 'csc':
-                    array = array.tocsc()
-                elif sparse_format == 'dense':
-                    raise TypeError('A sparse matrix was passed, but dense '
-                                    'data is required. Use X.toarray() to '
-                                    'convert to a dense numpy array.')
-                if check_ccontiguous:
-                    array.data = np.ascontiguousarray(array.data, dtype=dtype)
-                elif hasattr(array, 'data'):
-                    array.data = np.asarray(array.data, dtype=dtype)
-                elif array.dtype != dtype:
-                    array = array.astype(dtype)
-                if not allow_nans:
-                    if hasattr(array, 'data'):
-                        _assert_all_finite(array.data)
-                    else:
-                        _assert_all_finite(array.values())
-            else:
-                if check_ccontiguous:
-                    array = np.ascontiguousarray(array, dtype=dtype)
-                else:
-                    array = np.asarray(array, dtype=dtype)
-                if not allow_nans:
-                    _assert_all_finite(array)
-
-            if not allow_nd and array.ndim >= 3:
-                raise ValueError("Found array with dim %d. Expected <= 2" %
-                                 array.ndim)
-
-        if copy and array is array_orig:
-            array = array.copy()
-        checked_arrays.append(array)
-
-    return checked_arrays
-
-
-def column_or_1d(y, warn=False):
-    """ Ravel column or 1d numpy array, else raises an error
-
-    Parameters
-    ----------
-    y : array-like
-
-    Returns
-    -------
-    y : array
-
-    """
-    shape = np.shape(y)
-    if len(shape) == 1:
-        return np.ravel(y)
-    if len(shape) == 2 and shape[1] == 1:
-        if warn:
-            warnings.warn("A column-vector y was passed when a 1d array was"
-                          " expected. Please change the shape of y to "
-                          "(n_samples, ), for example using ravel().",
-                          DataConversionWarning, stacklevel=2)
-        return np.ravel(y)
-
-    raise ValueError("bad input shape {0}".format(shape))
-
-
-def warn_if_not_float(X, estimator='This algorithm'):
-    """Warning utility function to check that data type is floating point.
-
-    Returns True if a warning was raised (i.e. the input is not float) and
-    False otherwise, for easier input validation.
-    """
-    if not isinstance(estimator, six.string_types):
-        estimator = estimator.__class__.__name__
-    if X.dtype.kind != 'f':
-        warnings.warn("%s assumes floating point values as input, "
-                      "got %s" % (estimator, X.dtype))
-        return True
-    return False
-
-
-def check_random_state(seed):
-    """Turn seed into a np.random.RandomState instance
-
-    If seed is None, return the RandomState singleton used by np.random.
-    If seed is an int, return a new RandomState instance seeded with seed.
-    If seed is already a RandomState instance, return it.
-    Otherwise raise ValueError.
-    """
-    if seed is None or seed is np.random:
-        return np.random.mtrand._rand
-    if isinstance(seed, (numbers.Integral, np.integer)):
-        return np.random.RandomState(seed)
-    if isinstance(seed, np.random.RandomState):
-        return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
