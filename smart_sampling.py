@@ -54,7 +54,7 @@ def smartSampling(nb_iter,
 	# n_clusters : number of clusters used in the parameter space to build a variable mapping for the GCP
 	# 		Note : n_clusters should stay quite small, and nb_random_steps should be >> n_clusters
 	
-	# isInt : bool or (n_parameters) array, specify which parameters are integers
+	# isInt : bool or (n_parameters) numpy array, specify which parameters are integers
 	#		If isInt is a boolean, all parameters are assumed to have the same type.
 	#		It is better to fix isInt=True rather than converting floating parameters as integers in the scoring
 	# 		function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that
@@ -197,14 +197,15 @@ def smartSampling(nb_iter,
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
-				# Here we choose acquisition_function == 'Simple' (default)
-				# as we are interested in finding the real max
+				# Here we choose acquisition_function == 'HighScoreHighConfidence'
+				# to trade-off the high score and high confidence desired
 				best_candidate = find_best_candidate(k,
 													 all_parameters[model_idx],
 													 all_outputs[model_idx],
 													 GCP_args,
 													 rand_candidates,
-													 verbose)
+													 verbose,
+													 acquisition_function='HighScoreHighConfidence')
 				output = score_function(best_candidate)
 
 				# erase duplicates as it can cause errors in GCP.fit and GCP.predict

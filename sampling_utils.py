@@ -67,6 +67,15 @@ def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx]
 	
+	elif(acquisition_function=='HighScoreHighConfidence'):
+	
+		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
+		objective = predictions*(1+ 1./(2. + (boundU-predictions)) )  # a trade-off between a high score and a high confidence
+		best_candidate_idx = np.argmax(objective)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx], objective[best_candidate_idx] 
+		
 	else:
 		print('Acquisition function not handled...')
 
@@ -101,6 +110,16 @@ def find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_functi
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
 	
+	elif(acquisition_function=='HighScoreHighConfidence'):
+	
+		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
+		upperBound = predictions + 1.96*np.sqrt(MSE)
+		objective = predictions*(1+ 1./(2. + (upperBound-predictions)) )  # a trade-off between a high score and a high confidence
+		best_candidate_idx = np.argmax(objective)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx], objective[best_candidate_idx]
+			
 	else:
 		print('Acquisition function not handled...')
 
