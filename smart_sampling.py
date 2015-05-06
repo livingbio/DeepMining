@@ -77,7 +77,7 @@ def smartSampling(nb_iter,
 	
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 5 ## final steps to search the max
+	nb_iter_final = 3 ## final steps to search the max
 	GCP_args = [corr_kernel, n_clusters]
 	
 	### models' order : GCP, GP, random
@@ -193,7 +193,9 @@ def smartSampling(nb_iter,
 			print('Final step '+str(i))
 		
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
-
+		
+		all_new_parameters = []
+		all_new_outputs = []
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
@@ -230,10 +232,10 @@ def smartSampling(nb_iter,
 	model_idx = 0
 	for k in range(nb_model):
 		if(modelToRun[k]):
-			model_idx += 1
 			best_parameter_idx = np.argmax(all_outputs[model_idx])
 			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
+			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
 	
 	if(returnOutputs):
