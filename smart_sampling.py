@@ -36,7 +36,8 @@ def smartSampling(nb_iter,
 	# model (string) : the model to run. Choose between :
 	#		- GCP (runs only the Gaussian Copula Process)
 	#		- GP (runs only the Gaussian Process)
-	#		- both (runs both models)
+	#		- random (samples at random)
+	#		- all (runs all models)
 	
 	# acquisition function (string) : the function to maximize
 	# 		- Simple : maximize the predicted output
@@ -61,9 +62,9 @@ def smartSampling(nb_iter,
 	
 	
 	# returns :
-	# 	- if model == GCP or GP
+	# 	- if model == GCP , GP or random
 	#		best_parameter = the parameters that provided the best performances with regards to the scoring function
-	#	- if model == both
+	#	- if model == all
 	#		best_parameter, best_parameter_GP = best parameters according to the GCP / GP
 	
 	
@@ -73,18 +74,20 @@ def smartSampling(nb_iter,
 	# - add non-isotropic models
 
 	n_parameters = parameter_bounds.shape[0]
-	nugget = 0.00001/1000.
 	nb_iter_final = 5 ## final steps to search the max
+	GCP_args = [corr_kernel, n_clusters]
 	
-	runGCP = False
-	runGP = False
-	if(model == 'both'):
-		runGCP = True
-		runGP = True
+	### models' order : GCP, GP, random
+	nb_model = 3
+	modelToRun = np.zeros(nb_model)
+	if(model == 'all'):
+		modelToRun = np.asarray([1,1,1])
 	elif(model == 'GCP'):
-		runGCP = True
+		modelToRun[0] = 1
 	elif(model == 'GP'):
-		runGP = True
+		modelToRun[1] = 1
+	elif(model == 'random'):
+		modelToRun[2] = 1
 		
 	# to store the results
 	parameters = None
@@ -116,9 +119,15 @@ def smartSampling(nb_iter,
 		
 		parameters,outputs = compute_unique2(parameters,outputs)
 
-	if(runGP):
-		parameters_GP = np.copy(parameters)
-		outputs_GP = np.copy(outputs)
+	all_parameters = []
+	all_outputs = []
+	for i in range(nb_model):
+		if(modelToRun[i]):
+			all_parameters.append(np.copy(parameters))
+			all_outputs.append(outputs)
+	all_parameters = np.asarray(all_parameters)
+	all_outputs = np.asarray( all_outputs)
+	print(all_parameters.shape)
 		
 		
 	#------------------------ Smart Sampling ------------------------#
@@ -129,53 +138,40 @@ def smartSampling(nb_iter,
 			print('Step '+str(i))
 
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
+		
 		if(verbose):
 			print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
 		
-		if(runGCP):
-			gcp = GaussianCopulaProcess(nugget = nugget,
-										corr=corr_kernel,
-										random_start=5,
-										n_clusters=n_clusters,
-										try_optimize=True)
-			gcp.fit(parameters,outputs)
-			if verbose:
-				print ('GCP theta :'+str(gcp.theta))
+		all_new_parameters = []
+		all_new_outputs = []
+		model_idx = 0
+		for k in range(nb_model):
+			if(modelToRun[k]):
+				best_candidate = find_best_candidate(k,
+													 all_parameters[model_idx],
+													 all_outputs[model_idx],
+													 GCP_args,
+													 rand_candidates,
+													 verbose,
+													 acquisition_function)
+				output = score_function(best_candidate)
+
+				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
+				new_parameters,new_outputs = compute_unique2( np.concatenate((all_parameters[model_idx],[best_candidate])),
+															  np.concatenate((all_outputs[model_idx],[output])) )
+				all_new_parameters.append(new_parameters)
+				all_new_outputs.append(new_outputs)
+
+				model_idx += 1
+					
+				if(verbose):
+					print k,'Test paramter:', best_candidate,' - ***** accuracy:',output
+			
+		# ToDo clean this
+		all_parameters = np.asarray(all_new_parameters)
+		all_outputs = np.asarray(all_new_outputs)	
+
 				
-			best_candidate = find_best_cendidate_with_GCP(gcp,
-														  rand_candidates,
-														  verbose,
-														  acquisition_function)
-			output = score_function(best_candidate)
-			
-			if(verbose):
-				print 'Test paramter:', best_candidate,' - ***** accuracy:',output
-			
-			parameters = np.concatenate((parameters,[best_candidate]))
-			outputs = np.concatenate((outputs,[output]))
-			
-			parameters,outputs = compute_unique2(parameters,outputs)
-
-		# do the same with a GP if asked, to compare the results
-		if(runGP):
-			gp = GaussianProcess(theta0=1. ,
-								 thetaL = 0.001,
-								 thetaU = 10.,
-								 nugget=nugget)
-			gp.fit(parameters_GP,outputs_GP)
-			if verbose:
-				print ('GP theta :'+str(gp.theta_))
-			best_candidate_GP = find_best_cendidate_with_GP(gp,
-															rand_candidates,
-															verbose,
-															acquisition_function)
-			output_GP = score_function(best_candidate_GP)
-			if(verbose):
-				print 'GP Test paramter:', best_candidate_GP,' - ***** accuracy:',output_GP
-			parameters_GP = np.concatenate((parameters_GP,[best_candidate_GP]))
-			outputs_GP = np.concatenate((outputs_GP,[output_GP]))
-			parameters_GP,outputs_GP = compute_unique2(parameters_GP,outputs_GP)
-
 
 	#----------------- Last step : Try to find the max -----------------#
 
@@ -186,71 +182,54 @@ def smartSampling(nb_iter,
 
 		if(verbose):
 			print('Final step '+str(i))
-			
-		if(runGCP):
-			rand_candidates = sample_random_candidates(4*nb_parameter_sampling,parameter_bounds,isInt)
-			if(verbose):
-				print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
-			
-			gcp = GaussianCopulaProcess(nugget = nugget,
-										random_start=5,
-										n_clusters=n_clusters,
-										try_optimize=True)
-			gcp.fit(parameters,outputs)
-			if verbose:
-				print ('GCP theta :'+str(gcp.theta))
-				
-			best_candidate = find_best_cendidate_with_GCP(gcp,
-														  rand_candidates,
-														  verbose)
-			output = score_function(best_candidate)
-			
-			if(verbose):
-				print 'Test paramter:', best_candidate,' - accuracy:',output
-			
-			parameters = np.concatenate((parameters,[best_candidate]))
-			outputs = np.concatenate((outputs,[output]))
-			parameters,outputs = compute_unique2(parameters,outputs)
+		
+		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
 
-		# do the same with a GP if asked, to compare the results
-		if(runGP):
-			gp = GaussianProcess(theta0=1. ,
-								 thetaL = 0.001,
-								 thetaU = 10.,
-								 nugget=nugget)
-			gp.fit(parameters_GP,outputs_GP)
-			best_candidate_GP = find_best_cendidate_with_GP(gp,
-															rand_candidates,
-															verbose)
-			output_GP = score_function(best_candidate_GP)
-			if(verbose):
-				print 'GP Test paramter:', best_candidate_GP,' - accuracy:',output_GP
-			parameters_GP = np.concatenate((parameters_GP,[best_candidate_GP]))
-			outputs_GP = np.concatenate((outputs_GP,[output_GP]))
-			parameters_GP,outputs_GP = compute_unique2(parameters_GP,outputs_GP)
+		model_idx = 0
+		for k in range(nb_model):
+			if(modelToRun[k]):
+				# Here we choose acquisition_function == 'Simple' (default)
+				# as we are interested in finding the real max
+				best_candidate = find_best_candidate(k,
+													 all_parameters[model_idx],
+													 all_outputs[model_idx],
+													 GCP_args,
+													 rand_candidates,
+													 verbose)
+				output = score_function(best_candidate)
+
+				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
+				new_parameters,new_outputs = compute_unique2( np.concatenate((all_parameters[model_idx],[best_candidate])),
+															  np.concatenate((all_outputs[model_idx],[output])) )
+				all_new_parameters.append(new_parameters)
+				all_new_outputs.append(new_outputs)
+
+				model_idx += 1
+					
+				if(verbose):
+					print k,'Test paramter:', best_candidate,' - ***** accuracy:',output
 			
+		# ToDo clean this
+		all_parameters = np.asarray(all_new_parameters)
+		all_outputs = np.asarray(all_new_outputs)	
 			
 	#--------------------------- Final Result ---------------------------#
 
-	if(runGCP):
-		best_parameter = np.argmax(outputs)
-		print('Best parameters '+str(parameters[best_parameter]) + ' with output: ' + str(outputs[best_parameter]))
-
-	if(runGP):
-		best_parameter_GP = np.argmax(outputs_GP)
-		print('GP Best parameters '+str(parameters_GP[best_parameter_GP]) + ' with output: ' + str(outputs_GP[best_parameter_GP]))
+	best_parameters = []
 	
-	if(model == 'both'):
-		if(returnOutputs):
-			return parameters[best_parameter], outputs, outputs_GP
-		else:
-			return parameters[best_parameter], parameters_GP[best_parameter_GP]
+	model_idx = 0
+	for k in range(nb_model):
+		if(modelToRun[k]):
+			model_idx += 1
+			best_parameter_idx = np.argmax(all_outputs[model_idx])
+			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
+			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
+	best_parameters = np.asarray(best_parameters)
 	
-	elif(model == 'GCP'):
-		return parameters[best_parameter]
-	
-	elif(model == 'GP'):
-		return parameters_GP[best_parameter_GP]
+	if(returnOutputs):
+		return best_parameters , all_outputs
+	else:
+		return best_parameters
 	
 
 	
