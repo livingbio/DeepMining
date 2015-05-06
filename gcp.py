@@ -777,7 +777,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 											 maxfun=3000,
 											 #rhobeg=2.0,
 											 rhoend=0.1,
-											 iprint=0
+											 #iprint=0
 											 )
 					opt_minus_rlf = minus_reduced_likelihood_function(log10_opt)
 					#print(opt_minus_rlf)
