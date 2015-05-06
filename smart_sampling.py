@@ -54,7 +54,8 @@ def smartSampling(nb_iter,
 	# n_clusters : number of clusters used in the parameter space to build a variable mapping for the GCP
 	# 		Note : n_clusters should stay quite small, and nb_random_steps should be >> n_clusters
 	
-	# isInt : if True, all parameters are considered to be integers
+	# isInt : bool or (n_parameters) numpy array, specify which parameters are integers
+	#		If isInt is a boolean, all parameters are assumed to have the same type.
 	#		It is better to fix isInt=True rather than converting floating parameters as integers in the scoring
 	# 		function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that
 	#		the function is smooth)
@@ -73,9 +74,18 @@ def smartSampling(nb_iter,
 	# - add the possibility to choose the centroids
 	# - add non-isotropic models
 
+	
+	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 5 ## final steps to search the max
+	nb_iter_final = 3 ## final steps to search the max
 	GCP_args = [corr_kernel, n_clusters]
+	
+	if(verbose):
+		print 'n_parameters :', n_parameters
+		print 'Nbr of final steps :', nb_iter_final
+		print 'GCP args :',GCP_args
+		print_utils_parameters()
+		
 	
 	### models' order : GCP, GP, random
 	nb_model = 3
@@ -89,6 +99,17 @@ def smartSampling(nb_iter,
 	elif(model == 'random'):
 		modelToRun[2] = 1
 		
+	# transform isInt into a (n_parameters) numpy array
+	if not(type(isInt).__name__ == 'ndarray'):
+		b= isInt
+		if(b):
+			isInt = np.ones(n_parameters)
+		else:
+			isInt = np.zeros(n_parameters)
+	else:
+		if not (isInt.shape[0] == n_parameters):
+			print 'Warning : isInt array has not the right shape'
+	
 	# to store the results
 	parameters = None
 	outputs = None
@@ -96,15 +117,10 @@ def smartSampling(nb_iter,
 
 	#-------------------- Random initialization --------------------#
 
-	for i in range(nb_random_steps):
-		rand_candidate = np.zeros(n_parameters)
-		for j in range(n_parameters):
-			if(isInt):
-				rand_candidate[j] = randint(parameter_bounds[j][0],parameter_bounds[j][1])
-			else:
-				rand_candidate[j] = randrange(parameter_bounds[j][0],parameter_bounds[j][1])
-		if(isInt):
-			rand_candidate = np.asarray( rand_candidate, dtype=np.int32)
+	# sample nb_random_steps random parameters to initialize the process
+	init_rand_candidates = sample_random_candidates(nb_random_steps,parameter_bounds,isInt)
+	for i in range(init_rand_candidates.shape[0]):
+		rand_candidate = init_rand_candidates[i]
 		output = score_function(rand_candidate)
 		
 		if(verbose):
@@ -184,18 +200,21 @@ def smartSampling(nb_iter,
 			print('Final step '+str(i))
 		
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
-
+		
+		all_new_parameters = []
+		all_new_outputs = []
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
-				# Here we choose acquisition_function == 'Simple' (default)
-				# as we are interested in finding the real max
+				# Here we choose acquisition_function == 'HighScoreHighConfidence'
+				# to trade-off the high score and high confidence desired
 				best_candidate = find_best_candidate(k,
 													 all_parameters[model_idx],
 													 all_outputs[model_idx],
 													 GCP_args,
 													 rand_candidates,
-													 verbose)
+													 verbose,
+													 acquisition_function='HighScoreHighConfidence')
 				output = score_function(best_candidate)
 
 				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
@@ -220,10 +239,10 @@ def smartSampling(nb_iter,
 	model_idx = 0
 	for k in range(nb_model):
 		if(modelToRun[k]):
-			model_idx += 1
 			best_parameter_idx = np.argmax(all_outputs[model_idx])
 			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
+			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
 	
 	if(returnOutputs):

@@ -9,8 +9,13 @@ from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 
 nugget = 0.00001/1000.
+GCP_upperBound_coef = 4.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
+
+def print_utils_parameters():
+	print 'Nugget', nugget
+	print 'GCP upper bound coef :', GCP_upperBound_coef,'\n'
 
 def find_best_candidate(model, X, Y, args, rand_candidates,verbose,acquisition_function='Simple'):
 	
@@ -61,12 +66,21 @@ def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition
 	
 	elif(acquisition_function=='MaxUpperBound'):
 	
-		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
+		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx]
 	
+	elif(acquisition_function=='HighScoreHighConfidence'):
+	
+		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
+		objective = predictions*(1+ 1./(2. + (boundU-predictions)) )  # a trade-off between a high score and a high confidence
+		best_candidate_idx = np.argmax(objective)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx], objective[best_candidate_idx] 
+		
 	else:
 		print('Acquisition function not handled...')
 
@@ -101,6 +115,16 @@ def find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_functi
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
 	
+	elif(acquisition_function=='HighScoreHighConfidence'):
+	
+		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
+		upperBound = predictions + 1.96*np.sqrt(MSE)
+		objective = predictions*(1+ 1./(2. + (upperBound-predictions)) )  # a trade-off between a high score and a high confidence
+		best_candidate_idx = np.argmax(objective)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx], objective[best_candidate_idx]
+			
 	else:
 		print('Acquisition function not handled...')
 
@@ -112,7 +136,7 @@ def sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt):
 	n_parameters = parameter_bounds.shape[0]
 	candidates = []
 	for k in range(n_parameters):
-		if(isInt):
+		if(isInt[k]):
 			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
 								dtype = np.int32)
 		else:
