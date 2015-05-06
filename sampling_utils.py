@@ -13,6 +13,10 @@ GCP_upperBound_coef = 4.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
+def print_utils_parameters():
+	print 'Nugget', nugget
+	print 'GCP upper bound coef :', GCP_upperBound_coef,'\n'
+
 def find_best_candidate(model, X, Y, args, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	if(model == 0):

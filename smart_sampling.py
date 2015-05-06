@@ -80,6 +80,13 @@ def smartSampling(nb_iter,
 	nb_iter_final = 3 ## final steps to search the max
 	GCP_args = [corr_kernel, n_clusters]
 	
+	if(verbose):
+		print 'n_parameters :', n_parameters
+		print 'Nbr of final steps :', nb_iter_final
+		print 'GCP args :',GCP_args
+		print_utils_parameters()
+		
+	
 	### models' order : GCP, GP, random
 	nb_model = 3
 	modelToRun = np.zeros(nb_model)
