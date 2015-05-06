@@ -414,7 +414,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		return self
 
-	def predict(self, X, eval_MSE=False, eval_confidence_bounds=False, batch_size=None):
+	def predict(self, X, eval_MSE=False, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
 		"""
 		This function evaluates the Gaussian Process model at x.
 
@@ -537,7 +537,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				if(eval_confidence_bounds):
 					sigma = np.sqrt(MSE)
 					warped_y_with_boundL = warped_y - 1.9600 * sigma
-					warped_y_with_boundU = warped_y + 1.9600 * sigma
+					warped_y_with_boundU = warped_y + upperBoundCoef * sigma
 					pred_with_boundL = np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] )
 					pred_with_boundU = np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] )
 					return y,MSE,pred_with_boundL,pred_with_boundU
@@ -777,7 +777,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 											 maxfun=3000,
 											 #rhobeg=2.0,
 											 rhoend=0.1,
-											 #iprint=0
+											 iprint=0
 											 )
 					opt_minus_rlf = minus_reduced_likelihood_function(log10_opt)
 					#print(opt_minus_rlf)

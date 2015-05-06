@@ -9,6 +9,7 @@ from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 
 nugget = 0.00001/1000.
+GCP_upperBound_coef = 4.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
@@ -61,7 +62,7 @@ def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition
 	
 	elif(acquisition_function=='MaxUpperBound'):
 	
-		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
+		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
