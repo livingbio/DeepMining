@@ -112,7 +112,7 @@ def sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt):
 	n_parameters = parameter_bounds.shape[0]
 	candidates = []
 	for k in range(n_parameters):
-		if(isInt):
+		if(isInt[k]):
 			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
 								dtype = np.int32)
 		else:

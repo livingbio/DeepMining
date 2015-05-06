@@ -54,7 +54,8 @@ def smartSampling(nb_iter,
 	# n_clusters : number of clusters used in the parameter space to build a variable mapping for the GCP
 	# 		Note : n_clusters should stay quite small, and nb_random_steps should be >> n_clusters
 	
-	# isInt : if True, all parameters are considered to be integers
+	# isInt : bool or (n_parameters) array, specify which parameters are integers
+	#		If isInt is a boolean, all parameters are assumed to have the same type.
 	#		It is better to fix isInt=True rather than converting floating parameters as integers in the scoring
 	# 		function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that
 	#		the function is smooth)
@@ -73,6 +74,8 @@ def smartSampling(nb_iter,
 	# - add the possibility to choose the centroids
 	# - add non-isotropic models
 
+	
+	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
 	nb_iter_final = 5 ## final steps to search the max
 	GCP_args = [corr_kernel, n_clusters]
@@ -89,6 +92,17 @@ def smartSampling(nb_iter,
 	elif(model == 'random'):
 		modelToRun[2] = 1
 		
+	# transform isInt into a (n_parameters) numpy array
+	if not(type(isInt).__name__ == 'ndarray'):
+		b= isInt
+		if(b):
+			isInt = np.ones(n_parameters)
+		else:
+			isInt = np.zeros(n_parameters)
+	else:
+		if not (isInt.shape[0] == n_parameters):
+			print 'Warning : isInt array has not the right shape'
+	
 	# to store the results
 	parameters = None
 	outputs = None
@@ -96,15 +110,10 @@ def smartSampling(nb_iter,
 
 	#-------------------- Random initialization --------------------#
 
-	for i in range(nb_random_steps):
-		rand_candidate = np.zeros(n_parameters)
-		for j in range(n_parameters):
-			if(isInt):
-				rand_candidate[j] = randint(parameter_bounds[j][0],parameter_bounds[j][1])
-			else:
-				rand_candidate[j] = randrange(parameter_bounds[j][0],parameter_bounds[j][1])
-		if(isInt):
-			rand_candidate = np.asarray( rand_candidate, dtype=np.int32)
+	# sample nb_random_steps random parameters to initialize the process
+	init_rand_candidates = sample_random_candidates(nb_random_steps,parameter_bounds,isInt)
+	for i in range(init_rand_candidates.shape[0]):
+		rand_candidate = init_rand_candidates[i]
 		output = score_function(rand_candidate)
 		
 		if(verbose):
