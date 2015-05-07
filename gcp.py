@@ -806,7 +806,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				if(opt_minus_rlf != 999999999. ):
 				
 					optimal_theta = 10. ** log10_optimal_theta
-					if True: #self.verbose:
+					if self.verbose:
 						print(optimal_theta)
 					optimal_rlf_value, optimal_par = self.reduced_likelihood_function(theta=optimal_theta)
 
