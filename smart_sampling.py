@@ -152,7 +152,12 @@ def smartSampling(nb_iter,
 
 		if(verbose):
 			print('Step '+str(i))
-
+			model_idx=0
+			for k in range(nb_model):
+				if(modelToRun[k]):
+					print k,'current best output',np.max(all_parameters[model_idx,:])
+					model_idx += 1	
+					
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
 		
 		if(verbose):
