@@ -784,9 +784,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					log10_optimal_theta = log10_opt
 					
 				except ValueError as ve:
-					k2 +=1
+					opt_minus_rlf = 999999999.
 					print("Optimization failed. Try increasing the ``nugget``")
-					raise ve
+					#raise ve
 				
 				if(opt_minus_rlf != 999999999. ):
 				
