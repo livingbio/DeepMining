@@ -95,7 +95,7 @@ def l1_cross_distances(X):
 	
 	
 def sq_exponential(theta,d):
-	return np.exp( - np.atleast_2d(theta) * np.sum(d ** 2, axis=1)  )
+	return np.exp( - np.sum( theta.reshape(1, theta.size) d ** 2, axis=1)  )
 
 
 def exponential_periodic(theta,d):
