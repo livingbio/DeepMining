@@ -194,6 +194,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 try_optimize=True,
 				 random_start=10, 
 				 normalize=True,
+				 x_wrapping='none',
 				 n_clusters = 1,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
@@ -213,6 +214,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.try_optimize = try_optimize
 		self.n_clusters = n_clusters
 		self.density_functions = None
+		self.x_wrapping = x_wrapping
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -391,6 +393,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
 
+		if(self.x_wrapping != 'none'):
+			X = GCP_Xwrapping(X,self.x_wrapping)
+		
 		# initialize mapping only if needed, i.e. it hasn't be done 
 		# yet of if we want to optimize the GCP hyperparameters
 		if (self.try_optimize or (self.density_functions is None)):
@@ -482,6 +487,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if self.normalize:
 			X = (X - self.X_mean) / self.X_std
 
+		if(self.x_wrapping != 'none'):
+			X = GCP_Xwrapping(X,self.x_wrapping)
+			
 		# Initialize output
 		y = np.zeros(n_eval)
 		if eval_MSE:

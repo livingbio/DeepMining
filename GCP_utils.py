@@ -6,6 +6,10 @@
 import numpy as np
 from sklearn_utils import *
 
+def GCP_Xwrapping(X,self.x_wrapping):
+	## do domething
+	return X
+
 
 def theta_toOneDim(theta):
 	if(theta.shape[0] == 1):
