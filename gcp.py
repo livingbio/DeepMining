@@ -16,7 +16,7 @@ from scipy.stats import norm
 from scipy import stats
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
-from GCP_utils import find_bounds,binary_search,l1_cross_distances,sq_exponential,exponential_periodic
+from GCP_utils import *
 from sklearn_utils import *
 
 MACHINE_EPSILON = np.finfo(np.double).eps
@@ -349,6 +349,19 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.y_ndim_ = y.ndim
 		if y.ndim == 1:
 			y = y[:, np.newaxis]
+		else:
+			print('Warning: code is not ready for y outputs with dimension > 1')
+			
+		# Reshape theta if it is one dimensional and X is not
+		#print('theta shape '+str(self.theta.shape))
+		if not (self.theta.ndim == X.ndim):
+			if not(self.theta.ndim == 1):
+				print('Warning : theta has not the right shape')
+			self.theta = (np.ones((X.ndim,self.theta.shape[0])) * self.theta ).T
+			self.thetaL = (np.ones((X.ndim,self.thetaL.shape[0])) * self.thetaL ).T
+			self.thetaU = (np.ones((X.ndim,self.thetaU.shape[0])) * self.thetaU ).T
+			#print('theta has new shape '+str(self.theta.shape))
+		
 			
 		self.random_state = check_random_state(self.random_state)
 		self.raw_y = y
@@ -726,19 +739,22 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if self.optimizer == 'fmin_cobyla':
 
 			def minus_reduced_likelihood_function(x):
+				x_reshaped = theta_backToRealShape(x,self.theta.shape)
 				return - self.reduced_likelihood_function(
-					theta=10. ** x,
+					theta=10. ** x_reshaped,
 					verb=False)[0]
 						
 			constraints = []
 			# http://stackoverflow.com/questions/25985868/scipy-why-isnt-cobyla-respecting-constraint
-			conL = np.log10(self.thetaL)
-			conU = np.log10(self.thetaU)
-
-			def kernel_coef(x):
-				return(100. - ((10. ** x[0]) + (10. ** x[1]) + (10. ** x[2])))
 			
-			for idx in range(self.theta.shape[0]):
+			# Cobyla takes only one dimensional array
+			conL = np.log10(theta_toOneDim(self.thetaL))
+			conU = np.log10(theta_toOneDim(self.thetaU))
+			
+			def kernel_coef(x):
+				return(100. - ((10. ** x[0]) + (10. ** x[1]) + (10. ** x[2]) ))
+			
+			for idx in range(self.theta.size-3):
 				lower = conL[idx]
 				upper = conU[idx]
 				constraints.append(lambda x, a=lower, i=idx: x[i] - a)
@@ -751,9 +767,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			k2 = 0
 			while( (k < self.random_start) and (k2 < 50)):
 					
-				if k == 0:
+				if (k == 0 and k2 ==0):
 					# Use specified starting point as first guess
-					theta0 = self.theta
+					theta0 = theta_toOneDim(self.theta)
 
 				else:
 					# Generate a random starting point log10-uniformly
@@ -762,7 +778,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 						+ self.random_state.rand(self.theta.size).reshape(
 							self.theta.shape) * np.log10(self.thetaU
 														  / self.thetaL)
-					theta0 = 10. ** log10theta0
+					theta0 = 10. ** theta_toOneDim(log10theta0)
 					
 				# Run Cobyla
 				try:
@@ -777,21 +793,20 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 											 maxfun=3000,
 											 #rhobeg=2.0,
 											 rhoend=0.1,
-											 iprint=0
+											 #iprint=0
 											 )
 					opt_minus_rlf = minus_reduced_likelihood_function(log10_opt)
 					#print(opt_minus_rlf)
-					log10_optimal_theta = log10_opt
+					log10_optimal_theta = theta_backToRealShape(log10_opt,self.theta.shape)
 					
 				except ValueError as ve:
 					opt_minus_rlf = 999999999.
-					print("Optimization failed. Try increasing the ``nugget``")
-					#raise ve
+					raise ve
 				
 				if(opt_minus_rlf != 999999999. ):
 				
 					optimal_theta = 10. ** log10_optimal_theta
-					if self.verbose:
+					if True: #self.verbose:
 						print(optimal_theta)
 					optimal_rlf_value, optimal_par = self.reduced_likelihood_function(theta=optimal_theta)
 
@@ -815,7 +830,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				else:
 					k2 += 1
 					if(k2 == 50 and k==0):
-						print('MLE failed...')
+						print("Cobyla Optimization failed. Try increasing the ``nugget``")
 						best_optimal_theta = self.theta
 						best_optimal_rlf_value, best_optimal_par = self.reduced_likelihood_function(theta=best_optimal_theta)
 									
