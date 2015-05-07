@@ -7,6 +7,26 @@ import numpy as np
 from sklearn_utils import *
 
 
+def theta_toOneDim(theta):
+	if(theta.shape[0] == 1):
+		return theta
+	# we don't want t0,t1,t2 to varry with the axis
+	theta_1dim = np.mean( theta[:3,:],axis=1) #take the mean in case there has been a error somewhere
+	theta_1dim = np.concatenate((theta_1dim, (theta[3:,:]).reshape(1,theta.size-6)[0] ))
+	
+	return theta_1dim
+	
+	
+def theta_backToRealShape(theta_1dim,theta_shape):
+	temp = []
+	for i in range(theta_shape[1]):
+		temp.append(theta_1dim[:3])
+	theta = ( np.asarray(temp)).T	
+	theta = np.concatenate((theta, (theta_1dim[3:]).reshape([theta_shape[0]-3,theta_shape[1]]) ))
+	
+	return theta
+
+	
 def find_bounds(f, y):
 	x = 1
 	while((f(x) < y)  and (x<2047483646)):
@@ -75,30 +95,42 @@ def l1_cross_distances(X):
 	
 	
 def sq_exponential(theta,d):
-	return np.exp( - theta[0] * np.sum(d ** 2, axis=1)  )
+	return np.exp( - np.sum( theta.reshape(1, theta.size) d ** 2, axis=1)  )
 
 
 def exponential_periodic(theta,d):
-	t0 = theta[0] / 100.
-	t1 = theta[1] / 100.
-	t2 = theta[2] / 100.
-	t3 = theta[3]
-	t4 = theta[4]
-	t5 = theta[5]
-	t6 = theta[6]
-	t7 = theta[7]
+	# theta is a numpy array with shape (8,1) or (8,d.shape[1])
+	t0 = np.mean(theta[0,:] ) / 100.
+	t1 = np.mean(theta[1,:] ) / 100.
+	t2 = np.mean(theta[2,:] ) / 100.
+	t3 = theta[3,:]
+	t4 = theta[4,:]
+	t5 = theta[5,:]
+	t6 = theta[6,:]
+	t7 = theta[7,:]
 	#print(theta)
-	good_cond =  (t0 > 0) and (t1 > 0) and (t2 > 0) and (t6 > 0) 
+	good_cond =  (t0 > 0) and (t1 > 0) and (t2 > 0)
 	c = (t0 + t1 + t2) * 5.
 	if(good_cond):
-		c1 = t0 * np.exp( - t3 * np.sum(d ** 2, axis=1)  )
-		c2 = t1 * np.exp( - (np.sum(d**2,axis=1)/(2.*t4*t4)) - 2*(np.sin(3.14 * np.sum( d, axis=1)) /t5)**2  )
-		c3 = t2 * ( (np.prod(1+ (d/t7)**2 ) )** (-t6))
+		temp1 = 0.
+		temp21 = 0.
+		temp22 = 0.
+		c3 = t2
+		for k in range(d.shape[1]):
+			temp1 += t3[k] * d[:,k] ** 2
+			temp21 += (d[:,k]**2)/(2.* t4[k]**2) 
+			temp22 += (np.sin(3.14 *  d[:,k]) /t5[k])**2
+			c3 *= ( (1+ (d[:,k]/t7[k])**2 ) )** (-t6[k]) 
+		c1 = t0 * np.exp( - temp1)
+		c2 = t1 * np.exp( -temp21 - (2.*temp22) )
+		
 		if( np.sum( ((c1+c2+c3)/c) >= 1. ) >= 1):
 			print('Corr Error 1')
 			return np.zeros((d.shape[0]))
-		
+		#print ( np.min(((c1+c2+c3)/c)))
+		#print (np.max(((c1+c2+c3)/c)))
 		return ((c1+c2+c3)/c)
+	
 	else:
 		print('Corr Error 2')
 		return np.asarray([0.])

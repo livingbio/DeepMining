@@ -20,7 +20,7 @@ def smartSampling(nb_iter,
 				   nb_parameter_sampling=2000,
 				   n_clusters=1,
 				   isInt=True,
-				   returnOutputs=False,
+				   returnAllParameters=True,
 				   verbose=False):
 
 	# nb_iter : the number of smart iterations to perform
@@ -245,11 +245,10 @@ def smartSampling(nb_iter,
 			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
 	
-	if(returnOutputs):
-		return best_parameters , all_outputs
+	if(returnAllParameters):
+		return all_parameters , all_outputs
 	else:
 		return best_parameters
-	
 
 	
 
