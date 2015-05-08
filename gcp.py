@@ -230,14 +230,15 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				coefs = np.ones(self.n_clusters)
 				val = np.zeros(self.n_clusters)
 				for w in range(self.n_clusters):
-					coefs[w] =  1. / (distance.euclidean(x,self.centroids[w])+1)
+					## coefficients are :
+					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
+					coefs[w] =  np.exp(- np.sum( ((x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
 					val[w] = ( norm.ppf( temp) ) * coefs[w]
 				s = np.sum(coefs)
 				val = val / s
 				v = np.sum(val)
-				
 			else:
 				temp =  min(0.999999998,self.density_functions[0].integrate_box_1d(self.low_bound, t) )
 				v = norm.ppf(temp)
@@ -271,12 +272,15 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			# Compute the density function for each sub-window
 			density_functions = []
+			clusters_std = []
 			for w in range(self.n_clusters):
 				cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
+				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
 				print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
 			density_functions = np.asarray( density_functions)
 			self.density_functions = density_functions
+			self.clusters_std = np.asarray(clusters_std)
 		
 		else:
 			self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
