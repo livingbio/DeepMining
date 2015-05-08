@@ -809,7 +809,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					
 				except ValueError as ve:
 					opt_minus_rlf = 999999999.
-					raise ve
+					#raise ve
+					print('Warning, exception raised in Cobyla')
 				
 				if(opt_minus_rlf != 999999999. ):
 				
