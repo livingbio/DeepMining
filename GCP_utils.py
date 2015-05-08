@@ -6,7 +6,7 @@
 import numpy as np
 from sklearn_utils import *
 
-def GCP_Xwrapping(X,self.x_wrapping):
+def GCP_Xwrapping(X,x_wrapping):
 	## do domething
 	return X
 
@@ -99,7 +99,7 @@ def l1_cross_distances(X):
 	
 	
 def sq_exponential(theta,d):
-	return np.exp( - np.sum( theta.reshape(1, theta.size) d ** 2, axis=1)  )
+	return np.exp( - np.sum( theta.reshape(1, theta.size) * d ** 2, axis=1)  )
 
 
 def exponential_periodic(theta,d):

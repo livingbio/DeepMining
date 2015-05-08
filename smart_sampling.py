@@ -155,7 +155,7 @@ def smartSampling(nb_iter,
 			model_idx=0
 			for k in range(nb_model):
 				if(modelToRun[k]):
-					print k,'current best output',np.max(all_parameters[model_idx,:])
+					print k,'current best output',np.max(all_outputs[model_idx,:])
 					model_idx += 1	
 					
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt)
@@ -249,6 +249,12 @@ def smartSampling(nb_iter,
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
 			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
+	
+	if(verbose):
+		print '\n','n_parameters :', n_parameters
+		print 'Nbr of final steps :', nb_iter_final
+		print 'GCP args :',GCP_args
+		print_utils_parameters()
 	
 	if(returnAllParameters):
 		return all_parameters , all_outputs
