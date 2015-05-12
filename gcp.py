@@ -237,6 +237,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					temp = min(0.999999998,temp)
 					val[w] = ( norm.ppf( temp) ) * coefs[w]
 				s = np.sum(coefs)
+				if(s == np.inf):
+					print ('Warning s == inf')
+				if(s == np.NaN):
+					print('Warning s == nan')
+				#print(coefs)
 				val = val / s
 				v = np.sum(val)
 			else:
