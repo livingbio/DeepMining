@@ -77,7 +77,7 @@ def smartSampling(nb_iter,
 	
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 5 ## final steps to search the max
+	nb_iter_final = 0 ## final steps to search the max
 	GCP_args = [corr_kernel, n_clusters]
 	
 	if(verbose):

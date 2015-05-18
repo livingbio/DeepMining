@@ -241,9 +241,15 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					print ('Warning s == inf')
 				if(s == np.NaN):
 					print('Warning s == nan')
-				#print(coefs)
+
 				val = val / s
 				v = np.sum(val)
+				if(v == np.inf):
+					print ('Warning v == inf')
+					print(coefs)
+				if(v == np.NaN):
+					print('Warning v == nan')
+					print(coefs)
 			else:
 				temp =  min(0.999999998,self.density_functions[0].integrate_box_1d(self.low_bound, t) )
 				v = norm.ppf(temp)

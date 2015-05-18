@@ -9,7 +9,7 @@ from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 
 nugget = 0.00001/1.
-GCP_upperBound_coef = 4.5
+GCP_upperBound_coef = 4.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
