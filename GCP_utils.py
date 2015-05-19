@@ -12,8 +12,8 @@ def GCP_Xwrapping(X,x_wrapping):
 
 
 def theta_toOneDim(theta):
-	if(theta.shape[0] == 1):
-		return theta
+	if(theta.shape[1] == 1):
+		return theta[:,0]
 	# we don't want t0,t1,t2 to varry with the axis
 	theta_1dim = np.mean( theta[:3,:],axis=1) #take the mean in case there has been a error somewhere
 	theta_1dim = np.concatenate((theta_1dim, (theta[3:,:]).reshape(1,theta.size-6)[0] ))

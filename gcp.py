@@ -382,14 +382,17 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('Warning: code is not ready for y outputs with dimension > 1')
 			
 		# Reshape theta if it is one dimensional and X is not
-		#print('theta shape '+str(self.theta.shape))
-		if not (self.theta.ndim == X.ndim):
-			if not(self.theta.ndim == 1):
-				print('Warning : theta has not the right shape')
-			self.theta = (np.ones((X.ndim,self.theta.shape[0])) * self.theta ).T
-			self.thetaL = (np.ones((X.ndim,self.thetaL.shape[0])) * self.thetaL ).T
-			self.thetaU = (np.ones((X.ndim,self.thetaU.shape[0])) * self.thetaU ).T
-			#print('theta has new shape '+str(self.theta.shape))
+	
+		x_dim = X.shape[1]
+		#if not(self.theta.ndim == 1):
+		#	print('Warning : theta has not the right shape')
+		self.theta = (np.ones((x_dim,self.theta.shape[0])) * self.theta ).T
+		self.thetaL = (np.ones((x_dim,self.thetaL.shape[0])) * self.thetaL ).T
+		self.thetaU = (np.ones((x_dim,self.thetaU.shape[0])) * self.thetaU ).T
+		#print('theta has new shape '+str(self.theta.shape))
+		
+		
+		
 		
 			
 		self.random_state = check_random_state(self.random_state)
@@ -801,7 +804,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			k=0
 			k2 = 0
-			while( (k < self.random_start) and (k2 < 3)):
+			while( (k < self.random_start) and (k2 < 50)):
 					
 				if (k == 0 and k2 ==0):
 					# Use specified starting point as first guess
@@ -837,6 +840,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					
 				except ValueError as ve:
 					opt_minus_rlf = 999999999.
+					k2 += 1
 					#raise ve
 					print('Warning, exception raised in Cobyla')
 				
