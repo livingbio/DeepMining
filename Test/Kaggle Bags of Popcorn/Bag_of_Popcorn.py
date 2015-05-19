@@ -1,4 +1,4 @@
-n_exp = 201
+n_exp = 301
 
 # coding: utf-8
 
@@ -140,7 +140,7 @@ nb_GCP_steps = 80
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                                   #corr_kernel= 'squared_exponential',
-                                                  model = 'all',
+                                                  model = 'all',cluster_evol='variable',
                                                   nb_random_steps=20, n_clusters=3, verbose=True)
 
 print all_outputs.shape

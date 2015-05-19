@@ -8,7 +8,7 @@ from __future__ import print_function
 
 import numpy as np
 from scipy import linalg, optimize
-
+import math
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics.pairwise import manhattan_distances
 from sklearn.gaussian_process import regression_models as regression
@@ -252,9 +252,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				#if(v == np.inf or v == - np.inf):
 				#	print ('Warning v == inf')
 				#	print(coefs, store_temp)
-				if(v == np.NaN):
+				if(math.isnan(v)):
 					print('Warning v == nan')
-					print(coefs)
+					print(val,coefs)
 				if(has_null_temp and self.verboseMapping):
 					print(coefs/s,store_temp,self.low_bound,t)
 				# print(val,store_temp,coefs)
@@ -262,8 +262,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
 				temp =  min(0.999999998,temp )
 				v = norm.ppf(temp)
-				if(temp < 0.01):
-					print(temp,t)
+				#if(temp < 0.01):
+				#	print(temp,t)
 		else:  
 	        	v = 6.3
 			

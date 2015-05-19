@@ -19,6 +19,7 @@ def smartSampling(nb_iter,
 				   nb_random_steps=30,
 				   nb_parameter_sampling=2000,
 				   n_clusters=1,
+				   cluster_evol = 'constant',
 				   isInt=True,
 				   returnAllParameters=True,
 				   verbose=False):
@@ -78,7 +79,10 @@ def smartSampling(nb_iter,
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
 	nb_iter_final = 5 ## final steps to search the max
-	GCP_args = [corr_kernel, 1]
+	if(cluster_evol != 'constant'):
+		GCP_args = [corr_kernel, 1]
+	else:
+		GCP_args = [corr_kernel, n_clusters]
 	GCP_args_with_clusers = [corr_kernel, n_clusters]
 
 	if(verbose):
@@ -148,10 +152,16 @@ def smartSampling(nb_iter,
 		
 		
 	#------------------------ Smart Sampling ------------------------#
+	
+	i_mod_10 = 0
 
 	for i in range(nb_iter):
-		if(i==20):
-			GCP_args = GCP_args_with_clusers	
+		if(i==20 and cluster_evol=='step'):
+			GCP_args = GCP_args_with_clusters
+
+		if(i/10 > i_mod_10 and cluster_evol=='variable'):
+			GCP_args = [GCP_args[0],GCP_args[1]+1]
+			i_mod_10 += 1
 
 		if(verbose):
 			print('Step '+str(i))
