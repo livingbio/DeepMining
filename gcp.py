@@ -792,8 +792,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			def kernel_coef(x):
 				return(100. - ((10. ** x[0]) + (10. ** x[1]) + (10. ** x[2]) ))
-			
-			for idx in range(self.theta.size-3):
+		
+			n_idx = self.theta.size -3*(self.theta.shape[1]-1)	
+			for idx in range(n_idx):
 				lower = conL[idx]
 				upper = conU[idx]
 				constraints.append(lambda x, a=lower, i=idx: x[i] - a)
