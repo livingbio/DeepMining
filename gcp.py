@@ -215,6 +215,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.n_clusters = n_clusters
 		self.density_functions = None
 		self.x_wrapping = x_wrapping
+		self.verboseMapping = True
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -229,32 +230,42 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if(self.n_clusters > 1):
 				coefs = np.ones(self.n_clusters)
 				val = np.zeros(self.n_clusters)
+				store_temp = []
+				has_null_temp = False
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
 					coefs[w] =  np.exp(- np.sum( ((x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
+					store_temp.append(temp)
+					if(temp == 0):
+						#print('Found temp =0')
+						#if(coefs[w] != 0.):
+						#	print(temp,coefs[w])
+						temp = 1e-10
+						has_null_temp = True
 					val[w] = ( norm.ppf( temp) ) * coefs[w]
 				s = np.sum(coefs)
-				if(s == np.inf):
-					print ('Warning s == inf')
-				if(s == np.NaN):
-					print('Warning s == nan')
-
 				val = val / s
 				v = np.sum(val)
-				if(v == np.inf):
-					print ('Warning v == inf')
-					print(coefs)
+				#if(v == np.inf or v == - np.inf):
+				#	print ('Warning v == inf')
+				#	print(coefs, store_temp)
 				if(v == np.NaN):
 					print('Warning v == nan')
 					print(coefs)
+				if(has_null_temp and self.verboseMapping):
+					print(coefs/s,store_temp,self.low_bound,t)
+				# print(val,store_temp,coefs)
 			else:
-				temp =  min(0.999999998,self.density_functions[0].integrate_box_1d(self.low_bound, t) )
+				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
+				temp =  min(0.999999998,temp )
 				v = norm.ppf(temp)
-		else:
-			v = 6.3
+				if(temp < 0.01):
+					print(temp,t)
+		else:  
+	        	v = 6.3
 			
 		return [v]
 		
@@ -292,7 +303,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			density_functions = np.asarray( density_functions)
 			self.density_functions = density_functions
 			self.clusters_std = np.asarray(clusters_std)
-		
+			print('---STD---')
+			print(clusters_std)	
 		else:
 			self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
@@ -482,7 +494,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			An array with shape (n_eval, ) or (n_eval, n_targets) as with y,
 			with the Mean Squared Error at x.
 		"""
-
+		self.verboseMapping = False
+		
 		# Check input shapes
 		X = array2d(X)
 		n_eval, _ = X.shape
@@ -788,7 +801,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			k=0
 			k2 = 0
-			while( (k < self.random_start) and (k2 < 50)):
+			while( (k < self.random_start) and (k2 < 3)):
 					
 				if (k == 0 and k2 ==0):
 					# Use specified starting point as first guess

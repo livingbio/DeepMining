@@ -77,9 +77,10 @@ def smartSampling(nb_iter,
 	
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 0 ## final steps to search the max
-	GCP_args = [corr_kernel, n_clusters]
-	
+	nb_iter_final = 5 ## final steps to search the max
+	GCP_args = [corr_kernel, 1]
+	GCP_args_with_clusers = [corr_kernel, n_clusters]
+
 	if(verbose):
 		print 'n_parameters :', n_parameters
 		print 'Nbr of final steps :', nb_iter_final
@@ -149,6 +150,8 @@ def smartSampling(nb_iter,
 	#------------------------ Smart Sampling ------------------------#
 
 	for i in range(nb_iter):
+		if(i==20):
+			GCP_args = GCP_args_with_clusers	
 
 		if(verbose):
 			print('Step '+str(i))
