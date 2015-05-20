@@ -1,3 +1,5 @@
+n_exp = 401
+
 # coding: utf-8
 
 import os
@@ -18,6 +20,9 @@ data = pd.read_csv(os.path.join('labeledTrainData.tsv'), header=0,              
 print 'The first review is:'
 print data["review"][0]
 
+
+os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp))
+
 # Initialize an empty list to hold the clean reviews
 clean_reviews = []
 
@@ -30,7 +35,7 @@ print clean_reviews[0]
 
 nb_reviews = len(clean_reviews)
 print nb_reviews
-pop_size = 500
+pop_size = 1000
 print 'keep only',pop_size
 
 training_reviews = clean_reviews[:pop_size]
@@ -69,7 +74,7 @@ def scoring_function(parameters):
 	test_data_features = test_data_features.toarray()
 
 	mean_res = 0.
-	nb_try = 6
+	nb_try = 8
 	for n_test in range(nb_try): 
 		# Initialize a Random Forest classifier with n_estimators trees
 		forest = RandomForestClassifier(n_estimators = n_estimators)
@@ -95,34 +100,74 @@ parameter_bounds = np.asarray( [[3000,15000],[50,1000]] )
 
 
 #### EXP0 
-nb_GCP_steps = 3
-n_exp = 0
+#nb_GCP_steps = 3
+#n_exp = 0
 
-all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-                                                  model = 'all',
-                                                  nb_random_steps=3, n_clusters=1,verbose=True)
+#all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
+#                                                  model = 'all',
+#                                                  nb_random_steps=3, n_clusters=1,verbose=True)
 
-print all_outputs.shape
+#print all_outputs.shape
+#print 'Exp',n_exp,'has just finished'
 
-for i in range(all_outputs.shape[0]):
-        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/output_exp" +str(n_exp)+"_"+str(i)+".csv"),all_outputs[i], delimiter=",")
-        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/param_exp" +str(n_exp)+"_"+str(i)+".csv"),all_parameters[i], delimiter=",")
+#for i in range(all_outputs.shape[0]):
+#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),all_outputs[i], delimiter=",")
+#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
 
 ### EXP 2
-n_exp = 4
-print 'Starting exp',n_exp 
+#n_exp = 5
+#print 'Starting exp',n_exp 
+
+#nb_GCP_steps = 70
+
+#all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
+                                                  #corr_kernel= 'squared_exponential',
+#                                                  model = 'all',
+#                                                  nb_random_steps=30, n_clusters=3, verbose=True)
+
+#print all_outputs.shape
+#print 'Exp',n_exp,'has just finished'
+
+#for i in range(all_outputs.shape[0]):
+#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/output_exp" +str(n_exp)+"_"+str(i)+".csv"),all_outputs[i], delimiter=",")
+#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/param_exp" +str(n_exp)+"_"+str(i)+".csv"),all_parameters[i], delimiter=",")
+
+
+### EXP 2
+print 'Starting exp',n_exp
+
 nb_GCP_steps = 80
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                                   #corr_kernel= 'squared_exponential',
-                                                  model = 'all',
-                                                  nb_random_steps=20, n_clusters=1, verbose=True)
+                                                  model = 'all',cluster_evol='variable',
+                                                  nb_random_steps=20, n_clusters=3, verbose=True)
 
 print all_outputs.shape
+print 'Exp',n_exp,'has just finished'
 
 for i in range(all_outputs.shape[0]):
-        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/output_exp" +str(n_exp)+"_"+str(i)+".csv"),all_outputs[i], delimiter=",")
-        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/param_exp" +str(n_exp)+"_"+str(i)+".csv"),all_parameters[i], delimiter=",")
+        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),all_outputs[i], delimiter=",")
+        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

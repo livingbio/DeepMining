@@ -8,7 +8,7 @@ from __future__ import print_function
 
 import numpy as np
 from scipy import linalg, optimize
-
+import math
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics.pairwise import manhattan_distances
 from sklearn.gaussian_process import regression_models as regression
@@ -196,6 +196,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 normalize=True,
 				 x_wrapping='none',
 				 n_clusters = 1,
+				 coef_var_mapping = 0.4,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
@@ -215,6 +216,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.n_clusters = n_clusters
 		self.density_functions = None
 		self.x_wrapping = x_wrapping
+		self.verboseMapping = True
+		self.coef_var_mapping = coef_var_mapping
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -229,21 +232,36 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if(self.n_clusters > 1):
 				coefs = np.ones(self.n_clusters)
 				val = np.zeros(self.n_clusters)
+				store_temp = []
+				has_null_temp = False
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
-					coefs[w] =  np.exp(- np.sum( ((x -self.centroids[w])/self.clusters_std)**2. ) )
+					coefs[w] =  np.exp(- np.sum( (self.coef_var_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
+					store_temp.append(temp)
+					if(temp == 0):
+						temp = 1e-10
+						has_null_temp = True
 					val[w] = ( norm.ppf( temp) ) * coefs[w]
 				s = np.sum(coefs)
 				val = val / s
 				v = np.sum(val)
+				if(math.isnan(v)):
+					print('Warning v == nan')
+					print(val,coefs,x)
+				if(has_null_temp and self.verboseMapping):
+					print(coefs/s,store_temp,self.low_bound,t)
+				# print(val,store_temp,coefs)
 			else:
-				temp =  min(0.999999998,self.density_functions[0].integrate_box_1d(self.low_bound, t) )
+				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
+				temp =  min(0.999999998,temp )
 				v = norm.ppf(temp)
-		else:
-			v = 6.3
+				#if(temp < 0.01):
+				#	print(temp,t)
+		else:  
+	        	v = 6.3
 			
 		return [v]
 		
@@ -265,10 +283,15 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# Perform KMeans and store results
 		if(self.n_clusters > 1):
 			kmeans = KMeans(n_clusters=self.n_clusters)
-			windows_idx = kmeans.fit_predict(self.X)
-			self.centroids = kmeans.cluster_centers_
+			all_data = []
+			for i in range(self.X.shape[0]):
+				all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
+			all_data = np.asarray(all_data)
+			print('All data shape :',all_data.shape)
+			windows_idx = kmeans.fit_predict(all_data)#self.X)
+			self.centroids = kmeans.cluster_centers_[:,:-1]
 			print ("Centroids")
-			print (self.X_std*self.centroids + self.X_mean)
+			print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
 			
 			# Compute the density function for each sub-window
 			density_functions = []
@@ -281,7 +304,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			density_functions = np.asarray( density_functions)
 			self.density_functions = density_functions
 			self.clusters_std = np.asarray(clusters_std)
-		
+			print('---STD---')
+			print(clusters_std)	
 		else:
 			self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
@@ -359,20 +383,16 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('Warning: code is not ready for y outputs with dimension > 1')
 			
 		# Reshape theta if it is one dimensional and X is not
-		#print('theta shape '+str(self.theta.shape))
-		if not (self.theta.ndim == X.ndim):
-			if not(self.theta.ndim == 1):
-				print('Warning : theta has not the right shape')
-			self.theta = (np.ones((X.ndim,self.theta.shape[0])) * self.theta ).T
-			self.thetaL = (np.ones((X.ndim,self.thetaL.shape[0])) * self.thetaL ).T
-			self.thetaU = (np.ones((X.ndim,self.thetaU.shape[0])) * self.thetaU ).T
-			#print('theta has new shape '+str(self.theta.shape))
-		
+	
+		x_dim = X.shape[1]
+		#if not(self.theta.ndim == 1):
+		#	print('Warning : theta has not the right shape')
+		self.theta = (np.ones((x_dim,self.theta.shape[0])) * self.theta ).T
+		self.thetaL = (np.ones((x_dim,self.thetaL.shape[0])) * self.thetaL ).T
+		self.thetaU = (np.ones((x_dim,self.thetaU.shape[0])) * self.thetaU ).T
+		#print('theta has new shape '+str(self.theta.shape))
 			
-		self.random_state = check_random_state(self.random_state)
-		self.raw_y = y
-		self.low_bound = np.min([-500., 5. * np.min(y)])
-		
+		self.random_state = check_random_state(self.random_state)		
 		X, y = check_arrays(X, y)
 
 		# Check shapes of DOE & observations
@@ -389,10 +409,21 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			X_std[X_std == 0.] = 1.
 			# center and scale X if necessary
 			X = (X - X_mean) / X_std
+
+			raw_y_mean = np.mean(y, axis=0)
+			raw_y_std = np.std(y, axis=0)
+			raw_y_std[raw_y_std == 0.] = 1.
+			y = (y - raw_y_mean) / raw_y_std
+
 		else:
 			X_mean = np.zeros(1)
 			X_std = np.ones(1)
-
+		
+		self.raw_y = y
+		self.raw_y_mean = raw_y_mean
+		self.raw_y_std = raw_y_std
+		self.low_bound = np.min([-500., 5. * np.min(y)])
+		
 		# Set attributes
 		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
@@ -471,7 +502,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			An array with shape (n_eval, ) or (n_eval, n_targets) as with y,
 			with the Mean Squared Error at x.
 		"""
-
+		self.verboseMapping = False
+		
 		# Check input shapes
 		X = array2d(X)
 		n_eval, _ = X.shape
@@ -515,7 +547,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		size = y.shape[0]
 		warped_y = np.copy(y)
 		real_y = [ self.mapping_inv(X[i],y[i][0]) for i in range(size)]
-		real_y = np.asarray(real_y)
+		real_y = self.raw_y_std * np.asarray(real_y) +self.raw_y_mean
 		y = real_y.reshape(n_eval, n_targets)
 		
 		if self.y_ndim_ == 1:
@@ -563,8 +595,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					sigma = np.sqrt(MSE)
 					warped_y_with_boundL = warped_y - 1.9600 * sigma
 					warped_y_with_boundU = warped_y + upperBoundCoef * sigma
-					pred_with_boundL = np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] )
-					pred_with_boundU = np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] )
+					pred_with_boundL = self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] ) +self.raw_y_mean
+					pred_with_boundU =  self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] ) +self.raw_y_mean
 					return y,MSE,pred_with_boundL,pred_with_boundU
 						
 				else:
@@ -765,8 +797,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			def kernel_coef(x):
 				return(100. - ((10. ** x[0]) + (10. ** x[1]) + (10. ** x[2]) ))
-			
-			for idx in range(self.theta.size-3):
+		
+			n_idx = self.theta.size -3*(self.theta.shape[1]-1)	
+			for idx in range(n_idx):
 				lower = conL[idx]
 				upper = conU[idx]
 				constraints.append(lambda x, a=lower, i=idx: x[i] - a)
@@ -813,6 +846,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					
 				except ValueError as ve:
 					opt_minus_rlf = 999999999.
+					k2 += 1
 					#raise ve
 					print('Warning, exception raised in Cobyla')
 				

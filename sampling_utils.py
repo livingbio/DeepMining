@@ -9,7 +9,7 @@ from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 
 nugget = 0.00001/1.
-GCP_upperBound_coef = 3.5
+GCP_upperBound_coef = 4.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
@@ -26,7 +26,7 @@ def find_best_candidate(model, X, Y, args, rand_candidates,verbose,acquisition_f
 		best_candidate = find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 2):
-		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0])]
+		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0]-1)]
 		
 	else:
 		print('Error in find_best_candidate')
