@@ -1,4 +1,4 @@
-n_exp = 401
+n_exp = 405
 
 # coding: utf-8
 
@@ -20,8 +20,10 @@ data = pd.read_csv(os.path.join('labeledTrainData.tsv'), header=0,              
 print 'The first review is:'
 print data["review"][0]
 
-
-os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp))
+if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)):
+	os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp))
+else:
+	print('Be carefull, directory already exists')
 
 # Initialize an empty list to hold the clean reviews
 clean_reviews = []
