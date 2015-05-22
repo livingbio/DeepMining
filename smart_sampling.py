@@ -226,7 +226,7 @@ def smartSampling(nb_iter,
 		if(verbose):
 			print('Final step '+str(i))
 		
-		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt,isInt)
+		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt)
 		
 		all_new_parameters = []
 		all_new_outputs = []
@@ -242,7 +242,7 @@ def smartSampling(nb_iter,
 													 GCP_args,
 													 rand_candidates,
 													 verbose,
-													 acquisition_function='HighScoreHighConfidence')
+													 acquisition_function='Simple') #acquisition_function='HighScoreHighConfidence'
 				output = score_function(best_candidate)
 
 				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
@@ -269,7 +269,13 @@ def smartSampling(nb_iter,
 		if(modelToRun[k]):
 			best_parameter_idx = np.argmax(all_outputs[model_idx])
 			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
+			best_parameter_idx2 = np.argmax(all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
+			print k,'Best parameters for complete dataset'+ \
+									str( (all_parameters[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2]) \
+									+ ' with output: ' + \
+									str( (all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2])
+
 			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
 	
