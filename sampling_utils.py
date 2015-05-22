@@ -17,13 +17,13 @@ def print_utils_parameters():
 	print 'Nugget', nugget
 	print 'GCP upper bound coef :', GCP_upperBound_coef,'\n'
 
-def find_best_candidate(model, X, Y, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate(model, X, Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	if(model == 0):
-		best_candidate = find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GCP(X, Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 1):
-		best_candidate = find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 2):
 		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0]-1)]
@@ -34,7 +34,7 @@ def find_best_candidate(model, X, Y, args, rand_candidates,verbose,acquisition_f
 	return best_candidate
 
 	
-def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GCP(X, Y,data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
 	
@@ -67,6 +67,8 @@ def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition
 	elif(acquisition_function=='MaxUpperBound'):
 	
 		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
+		if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
+			boundU = boundU - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -88,7 +90,7 @@ def find_best_candidate_with_GCP(X, Y, args, rand_candidates,verbose,acquisition
 		
 
 		
-def find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	gp = GaussianProcess(theta0=1. ,
 						 thetaL = 0.001,
@@ -110,6 +112,8 @@ def find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_functi
 	
 		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
 		upperBound = predictions + 1.96*np.sqrt(MSE)
+		if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
+			upperBound = upperBound - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
 		best_candidate_idx = np.argmax(upperBound)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -132,9 +136,13 @@ def find_best_candidate_with_GP(X, Y, rand_candidates,verbose,acquisition_functi
 		
 
 		
-def sample_random_candidates(nb_parameter_sampling,parameter_bounds,isInt):
-	n_parameters = parameter_bounds.shape[0]
+def sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt):
+	n_parameters = isInt.shape[0]
 	candidates = []
+	if(data_size_bounds is not None):
+		data_size_samples = np.asarray( data_size_bounds[0] + (1-np.sqrt(np.random.rand(nb_parameter_sampling)))*(data_size_bounds[1]-data_size_bounds[0]) ,
+										dtype = np.int32 )
+		candidates.append(data_size_samples)
 	for k in range(n_parameters):
 		if(isInt[k]):
 			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
