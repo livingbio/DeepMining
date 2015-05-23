@@ -156,6 +156,24 @@ def sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bo
 	
 	return compute_unique1(candidates)
 
+def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt):
+	n_parameters = isInt.shape[0]
+	candidates = []
+	if(data_size_bounds is not None):
+		data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.random.rand(nb_parameter_sampling))*(data_size_bounds[1]-data_size_bounds[0])),
+										dtype = np.int32 )
+		candidates.append(data_size_samples)
+	for k in range(n_parameters):
+		if(isInt[k]):
+			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
+								dtype = np.int32)
+		else:
+			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] )
+		candidates.append(k_sample)
+	candidates = np.asarray(candidates)
+	candidates = candidates.T
+	
+	return compute_unique1(candidates)
 	
 def compute_unique1(a):
 	#http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array

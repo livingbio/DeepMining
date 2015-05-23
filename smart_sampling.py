@@ -126,7 +126,7 @@ def smartSampling(nb_iter,
 	#-------------------- Random initialization --------------------#
 
 	# sample nb_random_steps random parameters to initialize the process
-	init_rand_candidates = sample_random_candidates(nb_random_steps,parameter_bounds,data_size_bounds,isInt)
+	init_rand_candidates = sample_random_candidates_for_init(nb_random_steps,parameter_bounds,data_size_bounds,isInt)
 	for i in range(init_rand_candidates.shape[0]):
 		rand_candidate = init_rand_candidates[i]
 		output = score_function(rand_candidate)
