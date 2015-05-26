@@ -41,7 +41,7 @@ print nb_reviews
 
 def scoring_function(parameters):
 	pop_size, nb_features,n_estimators = parameters
-    	print pop_size
+    #print pop_size
     #training_reviews = clean_reviews[:pop_size]
     #test_reviews = clean_reviews[pop_size:(2*pop_size)]
     #training_labels = np.asarray(data["sentiment"][:pop_size])
@@ -70,13 +70,14 @@ def scoring_function(parameters):
     	idx = index[:final_nb]
     #test_data_features = vectorizer.transform(test_reviews)
     	X = train_data_features.toarray()
-    	forest = RandomForestClassifier(n_estimators = n_estimators)
+    	X = X[:,idx]
+	forest = RandomForestClassifier(n_estimators = n_estimators)
     	cv_score = cross_val_score(forest,X,Y,cv=5)
 
     	return np.mean(cv_score)
 
 ### Fix parameters of the problem : ####
-final_nb = 1000 ### the final number of bags kept
+final_nb = 2000 ### the final number of bags kept
 parameter_bounds = np.asarray( [[3000,15000],[50,1000]] )
 data_size_bounds = [100,1000]
 
