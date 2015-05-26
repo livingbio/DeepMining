@@ -1,4 +1,4 @@
-n_exp = 405
+n_exp = 705
 
 # coding: utf-8
 
@@ -10,6 +10,7 @@ import numpy as np
 from sklearn import tree,ensemble
 from sklearn.feature_selection import SelectKBest, chi2
 import matplotlib.pyplot as plt
+from sklearn.cross_validation import cross_val_score
 
 import sys
 sys.path.append("../../")
@@ -37,113 +38,61 @@ print clean_reviews[0]
 
 nb_reviews = len(clean_reviews)
 print nb_reviews
-pop_size = 1000
-print 'keep only',pop_size
-
-training_reviews = clean_reviews[:pop_size]
-test_reviews = clean_reviews[pop_size:(2*pop_size)]
-
-training_labels = np.asarray(data["sentiment"][:pop_size])
-test_labels =  np.asarray(data["sentiment"][pop_size:(2*pop_size)])
-print training_labels[:5]
-
 
 def scoring_function(parameters):
-	parameters = np.asarray( parameters , dtype=np.int32)
-	nb_features,n_estimators = parameters
-	nb_features = np.int(nb_features)
-	n_estimators = np.int(n_estimators)
-	# Initialize the "CountVectorizer" object, which is scikit-learn's
-	# bag of words tool.
-	vectorizer = CountVectorizer(analyzer = "word",                                tokenizer = None,                                 preprocessor = None,                              stop_words = None,                                max_features = nb_features)
+	pop_size, nb_features,n_estimators = parameters
+    	print pop_size
+    #training_reviews = clean_reviews[:pop_size]
+    #test_reviews = clean_reviews[pop_size:(2*pop_size)]
+    #training_labels = np.asarray(data["sentiment"][:pop_size])
+    #test_labels =  np.asarray(data["sentiment"][pop_size:(2*pop_size)])
+    	raw_X = clean_reviews[:(2*pop_size)]
+    	Y = np.asarray(data["sentiment"][:(2*pop_size)])
+    
+    # Initialize the "CountVectorizer" object, which is scikit-learn's
+    # bag of words tool.
+    	vectorizer = CountVectorizer(analyzer = "word",   \
+                             tokenizer = None,    \
+                             preprocessor = None, \
+                             stop_words = None,   \
+                             max_features = nb_features)
 
-	# fit_transform() does two functions: First, it fits the model
-	# and learns the vocabulary; second, it transforms our training data
-	# into feature vectors. The input to fit_transform should be a list of
-	# strings.
-	train_data_features = vectorizer.fit_transform(training_reviews)
-	ch2 = SelectKBest(chi2, k=final_nb)
-	ch2.fit(train_data_features,training_labels)
-	chiSQ_val = ch2.scores_
-	#print chiSQ_val[:10]
-	index = np.argsort(chiSQ_val)[::-1]
-	idx = index[:final_nb]
-	test_data_features = vectorizer.transform(test_reviews)
+    # fit_transform() does two functions: First, it fits the model
+    # and learns the vocabulary; second, it transforms our training data
+    # into feature vectors. The input to fit_transform should be a list of
+    # strings.
+    	train_data_features = vectorizer.fit_transform(raw_X)
+    	ch2 = SelectKBest(chi2, k=final_nb)
+    	ch2.fit(train_data_features,Y)
+   	chiSQ_val = ch2.scores_
+    #print chiSQ_val[:10]
+    	index = np.argsort(chiSQ_val)[::-1]
+    	idx = index[:final_nb]
+    #test_data_features = vectorizer.transform(test_reviews)
+    	X = train_data_features.toarray()
+    	forest = RandomForestClassifier(n_estimators = n_estimators)
+    	cv_score = cross_val_score(forest,X,Y,cv=5)
 
-	# Numpy arrays are easy to work with, so convert the result to an
-	# array
-	train_data_features = train_data_features.toarray()
-	test_data_features = test_data_features.toarray()
-
-	mean_res = 0.
-	nb_try = 8
-	for n_test in range(nb_try): 
-		# Initialize a Random Forest classifier with n_estimators trees
-		forest = RandomForestClassifier(n_estimators = n_estimators)
-		forest.fit( train_data_features, training_labels )
-		predicted_labels = forest.predict(test_data_features)
-
-		# Compute accuracy
-		res = 0
-		for i in range(len(predicted_labels)):
-			if (predicted_labels[i] == test_labels[i]):
-				res += 1
-		mean_res += (100. * np.float(res))/len(predicted_labels)
-
-	return (mean_res/np.float(nb_try))
-
-
-# In[7]:
+    	return np.mean(cv_score)
 
 ### Fix parameters of the problem : ####
-
 final_nb = 1000 ### the final number of bags kept
 parameter_bounds = np.asarray( [[3000,15000],[50,1000]] )
+data_size_bounds = [100,1000]
 
-
-#### EXP0 
-#nb_GCP_steps = 3
-#n_exp = 0
-
-#all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-#                                                  model = 'all',
-#                                                  nb_random_steps=3, n_clusters=1,verbose=True)
-
-#print all_outputs.shape
-#print 'Exp',n_exp,'has just finished'
-
-#for i in range(all_outputs.shape[0]):
-#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),all_outputs[i], delimiter=",")
-#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
-
-### EXP 2
-#n_exp = 5
-#print 'Starting exp',n_exp 
-
-#nb_GCP_steps = 70
-
-#all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-                                                  #corr_kernel= 'squared_exponential',
-#                                                  model = 'all',
-#                                                  nb_random_steps=30, n_clusters=3, verbose=True)
-
-#print all_outputs.shape
-#print 'Exp',n_exp,'has just finished'
-
-#for i in range(all_outputs.shape[0]):
-#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/output_exp" +str(n_exp)+"_"+str(i)+".csv"),all_outputs[i], delimiter=",")
-#        np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/param_exp" +str(n_exp)+"_"+str(i)+".csv"),all_parameters[i], delimiter=",")
-
-
-### EXP 2
 print 'Starting exp',n_exp
 
-nb_GCP_steps = 80
+nb_GCP_steps = 100
+
+#all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
+#                                                  #corr_kernel= 'squared_exponential',
+#                                                  model = 'all',cluster_evol='variable',
+#                                                  nb_random_steps=20, n_clusters=3, verbose=True)
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-                                                  #corr_kernel= 'squared_exponential',
-                                                  model = 'all',cluster_evol='variable',
-                                                  nb_random_steps=20, n_clusters=3, verbose=True)
+                                            data_size_bounds = data_size_bounds,
+                                            model = 'all', nb_parameter_sampling=2000,
+                                            nb_random_steps=25,n_clusters=1,verbose=True)
 
 print all_outputs.shape
 print 'Exp',n_exp,'has just finished'
@@ -151,26 +100,5 @@ print 'Exp',n_exp,'has just finished'
 for i in range(all_outputs.shape[0]):
         np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),all_outputs[i], delimiter=",")
         np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
-
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
