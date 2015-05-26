@@ -140,7 +140,13 @@ def sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bo
 	n_parameters = isInt.shape[0]
 	candidates = []
 	if(data_size_bounds is not None):
-		data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.sqrt(np.random.rand(1)))*(data_size_bounds[1]-data_size_bounds[0]))
+		# favor small data sizes
+		#data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.sqrt(np.random.rand(1)))*(data_size_bounds[1]-data_size_bounds[0]))
+		#								* np.ones(nb_parameter_sampling),
+		#								dtype = np.int32 )
+		
+		# sample data size uniformly
+		data_size_samples = np.asarray( (data_size_bounds[0] + (np.random.rand(1))*(data_size_bounds[1]-data_size_bounds[0]))
 										* np.ones(nb_parameter_sampling),
 										dtype = np.int32 )
 		candidates.append(data_size_samples)
