@@ -92,8 +92,7 @@ nb_GCP_steps = 100
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                             data_size_bounds = data_size_bounds,
                                             model = 'all', nb_parameter_sampling=2000,
-                                            nb_random_steps=255555n_clusters=1,verbose=True)
-
+                                            nb_random_steps=25,n_clusters=1,verbose=True)
 
 print all_outputs.shape
 print 'Exp',n_exp,'has just finished'
