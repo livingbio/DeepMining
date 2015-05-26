@@ -1,4 +1,4 @@
-n_exp = 701
+n_exp = 705
 
 # coding: utf-8
 
@@ -78,7 +78,7 @@ def scoring_function(parameters):
 ### Fix parameters of the problem : ####
 final_nb = 1000 ### the final number of bags kept
 parameter_bounds = np.asarray( [[3000,15000],[50,1000]] )
-data_size_bounds = [1000,1000]
+data_size_bounds = [100,1000]
 
 print 'Starting exp',n_exp
 
