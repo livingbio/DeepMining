@@ -67,8 +67,8 @@ def find_best_candidate_with_GCP(X, Y,data_size_bounds, args, rand_candidates,ve
 	elif(acquisition_function=='MaxUpperBound'):
 	
 		predictions,MSE,boundL,boundU = gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
-		if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
-			boundU = boundU - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
+		#if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
+		#	boundU = boundU - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -112,8 +112,8 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,
 	
 		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
 		upperBound = predictions + 1.96*np.sqrt(MSE)
-		if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
-			upperBound = upperBound - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
+		#if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
+		#	upperBound = upperBound - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
 		best_candidate_idx = np.argmax(upperBound)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
