@@ -303,7 +303,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
 			density_functions = np.asarray( density_functions)
 			self.density_functions = density_functions
-			self.clusters_std = np.asarray(clusters_std)
+			clusters_std = np.asarray(clusters_std)
+			clusters_std[clusters_std==0] = 1.
+			self.clusters_std = clusters_std
 			print('---STD---')
 			print(clusters_std)	
 		else:
