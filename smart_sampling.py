@@ -290,9 +290,9 @@ def smartSampling(nb_iter,
 		print_utils_parameters()
 	
 	if(returnAllParameters):
-		return all_parameters , all_mean_outputs, all_std_outputs
+		return all_parameters , all_raw_outputs, all_mean_outputs, all_std_outputs
 	else:
-		return all_raw_outputs
+		return all_parameters, all_raw_outputs
 
 	
 

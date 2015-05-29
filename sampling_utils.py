@@ -193,14 +193,14 @@ def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,dat
 	candidates = np.asarray(candidates)
 	candidates = candidates.T
 	
-	return compute_unique1(candidates)
+	return candidates
 
 def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_output):
 	is_in,idx = is_in_2darray(new_param,parameters)
 	if(is_in):
-		print('Parameter already tested in',idx)
+		#print('Parameter already tested in',idx)
 		# parameters is already in our log
-		raw_outputs[idx].append(new_output)
+		raw_outputs[idx] += new_output
 		# update mean and std for this parameter set
 		score_outputs[idx] = np.mean(raw_outputs[idx])
 		std_outputs[idx] = np.std(raw_outputs[idx])
