@@ -269,9 +269,11 @@ def smartSampling(nb_iter,
 		if(modelToRun[k]):
 			best_parameter_idx = np.argmax(all_outputs[model_idx])
 			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
-			best_parameter_idx2 = np.argmax(all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
+			if(data_size_bounds is not None):
+				best_parameter_idx2 = np.argmax(all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
-			print k,'Best parameters for complete dataset'+ \
+			if(data_size_bounds is not None):
+				print k,'Best parameters for complete dataset'+ \
 									str( (all_parameters[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2]) \
 									+ ' with output: ' + \
 									str( (all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2])
