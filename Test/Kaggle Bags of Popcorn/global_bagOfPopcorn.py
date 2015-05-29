@@ -1,4 +1,4 @@
-n_exp = 901
+n_exp = 902
 
 import os
 from sklearn.feature_extraction.text import CountVectorizer
@@ -38,11 +38,11 @@ nb_reviews = len(clean_reviews)
 print nb_reviews
 
 ### Fix parameters of the problem : ####
-n_feat_layers = [9000,13000,16000,20000,25000]
+n_feat_layers = [10000,14000,17000,21000,26000,30000]
 final_nb = 4000 ### the final number of bags kept
-parameter_bounds = np.asarray( [[5000,20000],[400,2500]] )
-data_size_bounds = [500,6000]
-nb_GCP_steps = 21
+parameter_bounds = np.asarray( [[7000,30000],[300,2500]] )
+data_size_bounds = [1000,10000]
+nb_GCP_steps = 26
 
 
 hist_clean_reviews = []

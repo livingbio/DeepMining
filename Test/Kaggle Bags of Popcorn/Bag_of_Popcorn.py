@@ -1,4 +1,4 @@
-n_exp = 705
+n_exp = 870
 
 # coding: utf-8
 
@@ -79,11 +79,11 @@ def scoring_function(parameters):
 ### Fix parameters of the problem : ####
 final_nb = 2000 ### the final number of bags kept
 parameter_bounds = np.asarray( [[3000,15000],[50,1000]] )
-data_size_bounds = [100,1000]
+data_size_bounds = [1000,1000]
 
 print 'Starting exp',n_exp
 
-nb_GCP_steps = 100
+nb_GCP_steps = 30
 
 #all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
 #                                                  #corr_kernel= 'squared_exponential',
@@ -92,8 +92,10 @@ nb_GCP_steps = 100
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                             data_size_bounds = data_size_bounds,
-                                            model = 'all', nb_parameter_sampling=2000,
-                                            nb_random_steps=25,n_clusters=1,verbose=True)
+                                            model = 'all', cluster_evol='variable',
+					    nb_parameter_sampling=2000,
+                                            nb_random_steps=10,n_clusters=1,verbose=True)
+
 
 print all_outputs.shape
 print 'Exp',n_exp,'has just finished'

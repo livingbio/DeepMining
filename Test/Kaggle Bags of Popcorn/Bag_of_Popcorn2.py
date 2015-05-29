@@ -1,6 +1,4 @@
-n_exp = 1001
-
-# coding: utf-8
+n_exp = 1060
 
 import os
 from sklearn.feature_extraction.text import CountVectorizer
@@ -11,17 +9,13 @@ from sklearn import tree,ensemble
 from sklearn.feature_selection import SelectKBest, chi2
 import matplotlib.pyplot as plt
 from sklearn.cross_validation import Bootstrap,KFold
-
+import random
 
 import sys
 sys.path.append("../../")
 from smart_sampling import smartSampling
 from KaggleWord2VecUtility import KaggleWord2VecUtility  ## don't remove stopwords
 
-
-
-
-# In[3]:
 
 data = pd.read_csv(os.path.join('labeledTrainData.tsv'), header=0,                 delimiter="\t", quoting=3)
 print 'The first review is:'
@@ -49,7 +43,8 @@ print nb_reviews
 ### Fix parameters of the problem : ####
 parameter_bounds = np.asarray( [[1000,15000],[50,1000]] )
 nb_GCP_steps = 80
-pop_size = 300   #data_size_bounds = [100,1000] ## constant here !
+pop_size = 1000   
+data_size_bounds = [pop_size,pop_size] ## constant here !
 
 
 def scoring_function(parameters):
@@ -64,7 +59,7 @@ def scoring_function(parameters):
 
 
 def scoring_function_cv(subsample_clean_reviews,Y,parameters):
-    nb_features,n_estimators = parameters
+    pop_size,nb_features,n_estimators = parameters
 
     vectorizer = CountVectorizer(analyzer = "word",
                                 tokenizer = None,          
@@ -102,9 +97,10 @@ def scoring_function_cv(subsample_clean_reviews,Y,parameters):
 
     return np.mean(cv_results)-0.5*cv_std
 
+print 'Start exp',n_exp
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-                                            #data_size_bounds = data_size_bounds,
+                                            data_size_bounds = data_size_bounds,
                                             model = 'all', nb_parameter_sampling=2000,
                                             nb_random_steps=20, n_clusters=1,verbose=True)
 
