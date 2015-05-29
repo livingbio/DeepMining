@@ -17,13 +17,13 @@ def print_utils_parameters():
 	print 'Nugget', nugget
 	print 'GCP upper bound coef :', GCP_upperBound_coef,'\n'
 
-def find_best_candidate(model, X, Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	if(model == 0):
-		best_candidate = find_best_candidate_with_GCP(X, Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GCP(X, mean_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 1):
-		best_candidate = find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 2):
 		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0]-1)]
@@ -91,7 +91,7 @@ def find_best_candidate_with_GCP(X, Y,data_size_bounds, args, rand_candidates,ve
 
 		
 def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,acquisition_function='Simple'):
-	
+
 	gp = GaussianProcess(theta0=1. ,
 						 thetaL = 0.001,
 						 thetaU = 10.,
@@ -180,7 +180,26 @@ def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,dat
 	candidates = candidates.T
 	
 	return compute_unique1(candidates)
+
+def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_output):
+	is_in,idx = is_in_2darray(new_param,parameters)
+	if(is_in):
+		print('Parameter already tested in',idx)
+		# parameters is already in our log
+		raw_outputs[idx].append(new_output)
+		# update mean and std for this parameter set
+		score_outputs[idx] = np.mean(raw_outputs[idx])
+		std_outputs[idx] = np.std(raw_outputs[idx])
+	else:
+		# this is the first result for this parameter set
+		parameters = np.concatenate((parameters,[new_param]))
+		raw_outputs.append(new_output)
+		score_outputs.append(np.mean(new_output))
+		std_outputs.append(np.std(new_output))
 	
+	return parameters,raw_outputs,score_outputs,std_outputs
+
+
 def compute_unique1(a):
 	#http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
 
@@ -197,3 +216,15 @@ def compute_unique2(a1,a2):
 	_, idx = np.unique(b, return_index=True)
 	idx =np.sort(idx)
 	return a1[idx],a2[idx]	
+
+def is_in_2darray(item,a):
+	idx0 =  a[:,0]==item[0]
+	if np.sum(idx0 > 0):
+		idx1 = (a[idx0,1] == item[1])
+		if(np.sum(idx1) > 0):
+			all_idx = np.asarray(range(a.shape[0]))
+			return True,((all_idx[idx0])[idx1])[0]
+		else:
+			return False,0
+	else:
+		return False,0
