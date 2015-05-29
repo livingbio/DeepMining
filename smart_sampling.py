@@ -18,6 +18,7 @@ def smartSampling(nb_iter,
 				   acquisition_function='MaxUpperBound',
 				   corr_kernel= 'exponential_periodic',
 				   nb_random_steps=30,
+				   nb_iter_final = 5,
 				   nb_parameter_sampling=2000,
 				   n_clusters=1,
 				   cluster_evol = 'constant',
@@ -80,7 +81,6 @@ def smartSampling(nb_iter,
 	
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 5 ## final steps to search the max
 	if(cluster_evol != 'constant'):
 		GCP_args = [corr_kernel, 1]
 	else:
@@ -292,7 +292,7 @@ def smartSampling(nb_iter,
 	if(returnAllParameters):
 		return all_parameters , all_mean_outputs, all_std_outputs
 	else:
-		return best_parameters
+		return all_raw_outputs
 
 	
 
