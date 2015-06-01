@@ -8,8 +8,8 @@ from random import randint, randrange
 from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 
-nugget = 0.00001/1.
-GCP_upperBound_coef = 3.
+nugget = 0.00001/100.
+GCP_upperBound_coef = 2.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
@@ -20,7 +20,7 @@ def print_utils_parameters():
 def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	if(model == 0):
-		best_candidate = find_best_candidate_with_GCP(X, mean_Y, std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 1):
 		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
@@ -34,7 +34,7 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 	return best_candidate
 
 	
-def find_best_candidate_with_GCP(X, mean_Y, std_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
 	
@@ -42,19 +42,13 @@ def find_best_candidate_with_GCP(X, mean_Y, std_Y, data_size_bounds, args, rand_
 								corr=corr_kernel,
 								random_start=5,
 								n_clusters=n_clusters,
+							 	considerAllObs1=True,
+				 				considerAllObs2=True,
 								try_optimize=True)
-	mean_gcp.fit(X,mean_Y)
-
-	std_gcp = GaussianCopulaProcess(nugget = nugget,
-								corr=corr_kernel,
-								random_start=5,
-								n_clusters=n_clusters,
-								try_optimize=True)
-	std_gcp.fit(X,std_Y)
+	mean_gcp.fit(X,mean_Y,raw_Y)
 
 	if verbose:
-		print ('mean_GCP theta :'+str(mean_gcp.theta))
-		print ('std_GCP theta :'+str(std_gcp.theta))
+		print ('GCP theta :'+str(mean_gcp.theta))
 				
 	if(acquisition_function=='Simple'):
 	
@@ -75,18 +69,28 @@ def find_best_candidate_with_GCP(X, mean_Y, std_Y, data_size_bounds, args, rand_
 	
 	elif(acquisition_function=='MaxUpperBound'):
 	
-		mean_predictions,mean_MSE,mean_boundL,mean_boundU = \
+		predictions,MSE,boundL,boundU = \
 				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
-		std_predictions,std_MSE,std_boundL,std_boundU = \
-				std_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
-		std_selected_candidates_idx = np.argsort(std_predictions)[:200]  # we'd like to have a low std
-		min_std,max_std = std_boundU[std_selected_candidates_idx][0],std_boundU[std_selected_candidates_idx][199]
-		best_candidate_idx = np.argmax(mean_boundU[std_selected_candidates_idx])
-		best_candidate_idx = std_selected_candidates_idx[best_candidate_idx]
+
+		# If we'd like to model the std and use it as a pre-selector
+		#std_selected_candidates_idx = np.argsort(std_predictions)[:200]  # we'd like to have a low std
+		#min_std,max_std = std_boundU[std_selected_candidates_idx][0],std_boundU[std_selected_candidates_idx][199]
+		#best_candidate_idx = np.argmax(mean_boundU[std_selected_candidates_idx])
+		#best_candidate_idx = std_selected_candidates_idx[best_candidate_idx]
+
+		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
-			print 'Hopefully :', best_candidate, mean_predictions[best_candidate_idx], mean_boundU[best_candidate_idx]
-			print '& std should be between',min_std,' ',max_std
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx]
+
+	elif(acquisition_function=='MaxLowerBound'):
+	
+		predictions,MSE,boundL,boundU = \
+				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
+		best_candidate_idx = np.argmax(boundL)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundL[best_candidate_idx],boundU[best_candidate_idx]
 	
 	elif(acquisition_function=='HighScoreHighConfidence'):
 	
@@ -132,6 +136,15 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
+
+	elif(acquisition_function=='MaxLowerBound'):
+	
+		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
+		lowerBound = predictions - 1.96*np.sqrt(MSE)
+		best_candidate_idx = np.argmax(lowerBound)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], lowerBound[best_candidate_idx]
 	
 	elif(acquisition_function=='HighScoreHighConfidence'):
 	
