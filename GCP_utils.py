@@ -62,6 +62,19 @@ def binary_search(f, y, lo, hi):
 	else:
 		return lo	
 		
+def listOfList_toArray(params,obs):
+	array_obs = []
+	all_params = []
+	for i in range(len(obs)):
+		p = params[i]
+		for o in obs[i]:
+			array_obs.append(o)
+			all_params.append(p)
+	array_obs = np.asarray(array_obs)
+	all_params = np.asarray(all_params)
+
+	return all_params,array_obs
+
 
 def l1_cross_distances(X):
     """

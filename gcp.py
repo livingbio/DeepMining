@@ -197,6 +197,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 x_wrapping='none',
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
+				 considerAllObs1=True,
+				 considerAllObs2=False,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
@@ -309,7 +311,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('---STD---')
 			print(clusters_std)	
 		else:
-			self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
+			if(self.detailed_y is not None and considerAllObs1):
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_y) ])
+			else:
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
 		
 	def update_copula_params(self):
@@ -354,7 +359,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.y_mean, self.y_std = y_mean, y_std
 			
 			
-	def fit(self, X, y):
+	def fit(self, X, y,detailed_y_obs=None):
 		"""
 		The Gaussian Copula Process model fitting method.
 
@@ -383,9 +388,13 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			y = y[:, np.newaxis]
 		else:
 			print('Warning: code is not ready for y outputs with dimension > 1')
-			
+		
+		# Check if all CV obs are given
+		# and if so, convert this list of list to array
+		if(detailed_y_obs is not None and considerAllObs1):
+			detailed_X,detailed_y = listOfList_toArray(X,detailed_y_obs)	
+
 		# Reshape theta if it is one dimensional and X is not
-	
 		x_dim = X.shape[1]
 		#if not(self.theta.ndim == 1):
 		#	print('Warning : theta has not the right shape')
@@ -416,12 +425,18 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raw_y_std = np.std(y, axis=0)
 			raw_y_std[raw_y_std == 0.] = 1.
 			y = (y - raw_y_mean) / raw_y_std
+			if(detailed_y_obs is not None and considerAllObs1):
+				detailed_y = (detailed_y - raw_y_mean) / raw_y_std
 
 		else:
 			X_mean = np.zeros(1)
 			X_std = np.ones(1)
 		
 		self.raw_y = y
+		if(detailed_y_obs is not None and considerAllObs1):
+			self.detailed_y = detailed_y
+		else:
+			self.detailed_y = None			
 		self.raw_y_mean = raw_y_mean
 		self.raw_y_std = raw_y_std
 		self.low_bound = np.min([-500., 5. * np.min(y)])
