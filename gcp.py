@@ -187,10 +187,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 	def __init__(self, regr='constant', 
 				 corr='exponential_periodic',
-				 verbose=False, 
-				 theta=np.asarray([40,30,20,.05,1.,1.,2.,.1,1.]),
-				 thetaL=np.asarray([10.,1.,1.,.01,1.,0.1,0.1,0.01,0.01]),
-				 thetaU=np.asarray([90,50,20,10.,5.,10.,10.,1.,100.]), 
+				 verbose=False,
+				 theta=np.asarray([40,30,20,.05,1.,1.,.5,.001,10.]),
+                 thetaL=np.asarray([10.,1.,1.,.0001,1.,0.1,0.1,0.0001,1.]),
+                 thetaU=np.asarray([90,50,0.1,1.,1000.,10.,1.,.01,100.]), 
 				 try_optimize=True,
 				 random_start=10, 
 				 normalize=True,
@@ -203,6 +203,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
+# 				 theta=np.asarray([40,30,20,.05,1.,1.,2.,.1,1.]),
+#				 thetaL=np.asarray([10.,1.,1.,.01,1.,0.1,0.1,0.01,0.01]),
+#				 thetaU=np.asarray([90,50,20,10.,5.,10.,10.,1.,100.]), 
+
 		self.regr = regr
 		self.beta0 = None
 		self.storage_mode = 'full'
