@@ -194,7 +194,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 try_optimize=True,
 				 random_start=10, 
 				 normalize=True,
-				 x_wrapping='none',
+				 reNormalizeY = False,
+				 # x_wrapping='none',
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
 				 considerAllObs1=True,
@@ -210,6 +211,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.thetaL = thetaL
 		self.thetaU = thetaU
 		self.normalize = normalize
+		self.reNormalizeY = reNormalizeY
 		self.nugget = nugget
 		self.optimizer = 'fmin_cobyla'
 		self.random_start = random_start
@@ -217,7 +219,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.try_optimize = try_optimize
 		self.n_clusters = n_clusters
 		self.density_functions = None
-		self.x_wrapping = x_wrapping
+		# self.x_wrapping = x_wrapping
 		self.verboseMapping = True
 		self.coef_var_mapping = coef_var_mapping
 		self.considerAllObs1 = considerAllObs1
@@ -302,12 +304,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			clusters_std = []
 			if(self.detailed_raw_y is not None and self.considerAllObs1):
 				detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
-				print (detailed_windows_idx)
-
 			for w in range(self.n_clusters):
 				if(self.detailed_raw_y is not None and self.considerAllObs1):
-					print ((self.detailed_raw_y[ detailed_windows_idx == w]).shape)
-					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w]))
+					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w])[:,0])
 				else:
 					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
 				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
@@ -322,28 +321,32 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print(clusters_std)	
 		else:
 			if(self.detailed_raw_y is not None and self.considerAllObs1):
-				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y) ])
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
 			else:
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
 		
 	def update_copula_params(self):
+
 		size = self.raw_y.shape[0]
 		y = [ self.mapping(self.X[i],self.raw_y[i]) for i in range(size)]
 		y = np.asarray(y)
 		
 		# Normalize data
-		y_mean = np.mean(y, axis=0)
-		y_std = np.std(y, axis=0)
-		y_std[y_std == 0.] = 1.
+		if(self.reNormalizeY):
+			y_mean = np.mean(y, axis=0)
+			y_std = np.std(y, axis=0)
+			y_std[y_std == 0.] = 1.
+		else:
+			y_mean = 0.
+			y_std = 1.
 		y = (y - y_mean) / y_std
 
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
-		if (np.min(np.sum(D, axis=1)) == 0.
-				and self.corr != correlation.pure_nugget):
-			raise Exception("Multiple input features cannot have the same"
-							" target value.")
+		#if (np.min(np.sum(D, axis=1)) == 0.):
+		#	raise Exception("Multiple input features cannot have the same"
+		#					" target value.")
 
 		n_samples = self.X.shape[0]
 		# Regression matrix and parameters
@@ -392,18 +395,20 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# Run input checks
 		self._check_params()
 		X = array2d(X)
-		y = np.asarray(y)
-		self.y_ndim_ = y.ndim
-		if y.ndim == 1:
-			y = y[:, np.newaxis]
-		else:
-			print('Warning: code is not ready for y outputs with dimension > 1')
-		
 		# Check if all CV obs are given
 		# and if so, convert this list of list to array
 		if(detailed_y_obs is not None and self.considerAllObs1):
 			detailed_X,detailed_raw_y = listOfList_toArray(X,detailed_y_obs)	
 
+		y = np.asarray(y)
+		self.y_ndim_ = y.ndim
+		if y.ndim == 1:
+			y = y[:, np.newaxis]
+			if(detailed_y_obs is not None and self.considerAllObs1):
+				detailed_raw_y = detailed_raw_y[:, np.newaxis]
+		else:
+			print('Warning: code is not ready for y outputs with dimension > 1')
+		
 		# Reshape theta if it is one dimensional and X is not
 		x_dim = X.shape[1]
 		#if not(self.theta.ndim == 1):
@@ -452,16 +457,20 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.detailed_raw_y = None			
 			self.detailed_X = None			
 		
-		self.raw_y = y
+		if(self.considerAllObs2 and self.detailed_raw_y is not None):
+			self.X = self.detailed_X
+			self.raw_y = self.detailed_raw_y
+		else:
+			self.X = X
+			self.raw_y = y
+		
 		self.raw_y_mean = raw_y_mean
 		self.raw_y_std = raw_y_std
 		self.low_bound = np.min([-500., 5. * np.min(y)])
-		
-		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
 
-		if(self.x_wrapping != 'none'):
-			X = GCP_Xwrapping(X,self.x_wrapping)
+		#if(self.x_wrapping != 'none'):
+		#	X = GCP_Xwrapping(X,self.x_wrapping)
 		
 		# initialize mapping only if needed, i.e. it hasn't be done 
 		# yet of if we want to optimize the GCP hyperparameters
@@ -555,8 +564,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if self.normalize:
 			X = (X - self.X_mean) / self.X_std
 
-		if(self.x_wrapping != 'none'):
-			X = GCP_Xwrapping(X,self.x_wrapping)
+		#if(self.x_wrapping != 'none'):
+		#	X = GCP_Xwrapping(X,self.x_wrapping)
 			
 		# Initialize output
 		y = np.zeros(n_eval)
@@ -709,9 +718,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if D is None:
 			# Light storage mode (need to recompute D, ij and F)
 			D, ij = l1_cross_distances(self.X)
-			if (np.min(np.sum(D, axis=1)) == 0.
-					and self.corr != correlation.pure_nugget):
-				raise Exception("Multiple X are not allowed")
+			#if (np.min(np.sum(D, axis=1)) == 0.):
+			#	raise Exception("Multiple X are not allowed")
 			F = self.regr(self.X)
 
 		# Set up R
