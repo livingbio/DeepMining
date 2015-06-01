@@ -62,6 +62,29 @@ def binary_search(f, y, lo, hi):
 	else:
 		return lo	
 		
+def listOfList_toArray(params,obs):
+	array_obs = []
+	all_params = []
+	for i in range(len(obs)):
+		p = params[i]
+		for o in obs[i]:
+			array_obs.append(o)
+			all_params.append(p)
+	array_obs = np.asarray(array_obs)
+	all_params = np.asarray(all_params)
+
+	return all_params,array_obs
+
+def reshape_cluster_labels(labels,detailed_X):
+	detailed_labels = [labels[0]]
+	unique_count = 0 # to map to 'labels' list
+	for i in range(1,detailed_X.shape[0]):
+		if( any(detailed_X[i] != detailed_X[i-1])):
+			unique_count += 1
+		detailed_labels.append(labels[unique_count])
+
+	return np.asarray(detailed_labels)
+
 
 def l1_cross_distances(X):
     """
@@ -114,6 +137,7 @@ def exponential_periodic(theta,d):
 	t5 = theta[5,:]
 	t6 = theta[6,:]
 	t7 = theta[7,:]
+	t8 = theta[8,:]
 	#print(theta)
 	good_cond =  (t0 > 0) and (t1 > 0) and (t2 > 0)
 	c = (t0 + t1 + t2) * 5.
@@ -125,7 +149,7 @@ def exponential_periodic(theta,d):
 		for k in range(d.shape[1]):
 			temp1 += t3[k] * d[:,k] ** 2
 			temp21 += (d[:,k]**2)/(2.* t4[k]**2) 
-			temp22 += (np.sin(3.14 *  d[:,k]) /t5[k])**2
+			temp22 += (np.sin(3.14 *  d[:,k] /t8[k]) /t5[k])**2
 			c3 *= ( (1+ (d[:,k]/t7[k])**2 ) )** (-t6[k]) 
 		c1 = t0 * np.exp( - temp1)
 		c2 = t1 * np.exp( -temp21 - (2.*temp22) )

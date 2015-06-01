@@ -187,19 +187,26 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 	def __init__(self, regr='constant', 
 				 corr='exponential_periodic',
-				 verbose=False, 
-				 theta=np.asarray([40,30,20,.05,1.,1.,2.,.1]),
-				 thetaL=np.asarray([10.,1.,1.,.01,1.,0.1,0.1,0.01]),
-				 thetaU=np.asarray([90,50,20,10.,5.,10.,10.,1.]), 
+				 verbose=False,
+				 theta=np.asarray([40,30,20,.05,1.,1.,.5,.001,10.]),
+                 thetaL=np.asarray([10.,1.,1.,.0001,1.,0.1,0.1,0.0001,1.]),
+                 thetaU=np.asarray([90,50,0.1,1.,1000.,10.,1.,.01,100.]), 
 				 try_optimize=True,
 				 random_start=10, 
 				 normalize=True,
-				 x_wrapping='none',
+				 reNormalizeY = False,
+				 # x_wrapping='none',
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
+				 considerAllObs1=True,
+				 considerAllObs2=False,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
+# 				 theta=np.asarray([40,30,20,.05,1.,1.,2.,.1,1.]),
+#				 thetaL=np.asarray([10.,1.,1.,.01,1.,0.1,0.1,0.01,0.01]),
+#				 thetaU=np.asarray([90,50,20,10.,5.,10.,10.,1.,100.]), 
+
 		self.regr = regr
 		self.beta0 = None
 		self.storage_mode = 'full'
@@ -208,6 +215,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.thetaL = thetaL
 		self.thetaU = thetaU
 		self.normalize = normalize
+		self.reNormalizeY = reNormalizeY
 		self.nugget = nugget
 		self.optimizer = 'fmin_cobyla'
 		self.random_start = random_start
@@ -215,9 +223,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.try_optimize = try_optimize
 		self.n_clusters = n_clusters
 		self.density_functions = None
-		self.x_wrapping = x_wrapping
+		# self.x_wrapping = x_wrapping
 		self.verboseMapping = True
 		self.coef_var_mapping = coef_var_mapping
+		self.considerAllObs1 = considerAllObs1
+		self.considerAllObs2 =considerAllObs2
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -288,7 +298,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
 			all_data = np.asarray(all_data)
 			print('All data shape :',all_data.shape)
-			windows_idx = kmeans.fit_predict(all_data)#self.X)
+			windows_idx = kmeans.fit_predict(all_data) #self.X)
 			self.centroids = kmeans.cluster_centers_[:,:-1]
 			print ("Centroids")
 			print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
@@ -296,8 +306,13 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			# Compute the density function for each sub-window
 			density_functions = []
 			clusters_std = []
+			if(self.detailed_raw_y is not None and self.considerAllObs1):
+				detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
 			for w in range(self.n_clusters):
-				cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
+				if(self.detailed_raw_y is not None and self.considerAllObs1):
+					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w])[:,0])
+				else:
+					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
 				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
 				print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
@@ -309,26 +324,33 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('---STD---')
 			print(clusters_std)	
 		else:
-			self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
+			if(self.detailed_raw_y is not None and self.considerAllObs1):
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
+			else:
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
 		
 	def update_copula_params(self):
+
 		size = self.raw_y.shape[0]
 		y = [ self.mapping(self.X[i],self.raw_y[i]) for i in range(size)]
 		y = np.asarray(y)
 		
 		# Normalize data
-		y_mean = np.mean(y, axis=0)
-		y_std = np.std(y, axis=0)
-		y_std[y_std == 0.] = 1.
+		if(self.reNormalizeY):
+			y_mean = np.mean(y, axis=0)
+			y_std = np.std(y, axis=0)
+			y_std[y_std == 0.] = 1.
+		else:
+			y_mean = 0.
+			y_std = 1.
 		y = (y - y_mean) / y_std
 
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
-		if (np.min(np.sum(D, axis=1)) == 0.
-				and self.corr != correlation.pure_nugget):
-			raise Exception("Multiple input features cannot have the same"
-							" target value.")
+		#if (np.min(np.sum(D, axis=1)) == 0.):
+		#	raise Exception("Multiple input features cannot have the same"
+		#					" target value.")
 
 		n_samples = self.X.shape[0]
 		# Regression matrix and parameters
@@ -354,7 +376,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.y_mean, self.y_std = y_mean, y_std
 			
 			
-	def fit(self, X, y):
+	def fit(self, X, y,detailed_y_obs=None):
 		"""
 		The Gaussian Copula Process model fitting method.
 
@@ -377,15 +399,21 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# Run input checks
 		self._check_params()
 		X = array2d(X)
+		# Check if all CV obs are given
+		# and if so, convert this list of list to array
+		if(detailed_y_obs is not None and self.considerAllObs1):
+			detailed_X,detailed_raw_y = listOfList_toArray(X,detailed_y_obs)	
+
 		y = np.asarray(y)
 		self.y_ndim_ = y.ndim
 		if y.ndim == 1:
 			y = y[:, np.newaxis]
+			if(detailed_y_obs is not None and self.considerAllObs1):
+				detailed_raw_y = detailed_raw_y[:, np.newaxis]
 		else:
 			print('Warning: code is not ready for y outputs with dimension > 1')
-			
+		
 		# Reshape theta if it is one dimensional and X is not
-	
 		x_dim = X.shape[1]
 		#if not(self.theta.ndim == 1):
 		#	print('Warning : theta has not the right shape')
@@ -416,22 +444,37 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raw_y_std = np.std(y, axis=0)
 			raw_y_std[raw_y_std == 0.] = 1.
 			y = (y - raw_y_mean) / raw_y_std
-
+			if(detailed_y_obs is not None and self.considerAllObs1):
+				detailed_raw_y = (detailed_raw_y - raw_y_mean) / raw_y_std
+				detailed_X = (detailed_X - X_mean) / X_std
 		else:
 			X_mean = np.zeros(1)
 			X_std = np.ones(1)
 		
-		self.raw_y = y
+		
+		# Set attributes
+
+		if(detailed_y_obs is not None and self.considerAllObs1):
+			self.detailed_raw_y = detailed_raw_y
+			self.detailed_X = detailed_X
+		else:
+			self.detailed_raw_y = None			
+			self.detailed_X = None			
+		
+		if(self.considerAllObs2 and self.detailed_raw_y is not None):
+			self.X = self.detailed_X
+			self.raw_y = self.detailed_raw_y
+		else:
+			self.X = X
+			self.raw_y = y
+		
 		self.raw_y_mean = raw_y_mean
 		self.raw_y_std = raw_y_std
 		self.low_bound = np.min([-500., 5. * np.min(y)])
-		
-		# Set attributes
-		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
 
-		if(self.x_wrapping != 'none'):
-			X = GCP_Xwrapping(X,self.x_wrapping)
+		#if(self.x_wrapping != 'none'):
+		#	X = GCP_Xwrapping(X,self.x_wrapping)
 		
 		# initialize mapping only if needed, i.e. it hasn't be done 
 		# yet of if we want to optimize the GCP hyperparameters
@@ -525,8 +568,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if self.normalize:
 			X = (X - self.X_mean) / self.X_std
 
-		if(self.x_wrapping != 'none'):
-			X = GCP_Xwrapping(X,self.x_wrapping)
+		#if(self.x_wrapping != 'none'):
+		#	X = GCP_Xwrapping(X,self.x_wrapping)
 			
 		# Initialize output
 		y = np.zeros(n_eval)
@@ -679,9 +722,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if D is None:
 			# Light storage mode (need to recompute D, ij and F)
 			D, ij = l1_cross_distances(self.X)
-			if (np.min(np.sum(D, axis=1)) == 0.
-					and self.corr != correlation.pure_nugget):
-				raise Exception("Multiple X are not allowed")
+			#if (np.min(np.sum(D, axis=1)) == 0.):
+			#	raise Exception("Multiple X are not allowed")
 			F = self.regr(self.X)
 
 		# Set up R

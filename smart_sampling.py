@@ -18,6 +18,7 @@ def smartSampling(nb_iter,
 				   acquisition_function='MaxUpperBound',
 				   corr_kernel= 'exponential_periodic',
 				   nb_random_steps=30,
+				   nb_iter_final = 5,
 				   nb_parameter_sampling=2000,
 				   n_clusters=1,
 				   cluster_evol = 'constant',
@@ -80,7 +81,6 @@ def smartSampling(nb_iter,
 	
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
-	nb_iter_final = 5 ## final steps to search the max
 	if(cluster_evol != 'constant'):
 		GCP_args = [corr_kernel, 1]
 	else:
@@ -120,7 +120,7 @@ def smartSampling(nb_iter,
 	
 	# to store the results
 	parameters = None
-	outputs = None
+	raw_outputs = None
 
 
 	#-------------------- Random initialization --------------------#
@@ -129,29 +129,33 @@ def smartSampling(nb_iter,
 	init_rand_candidates = sample_random_candidates_for_init(nb_random_steps,parameter_bounds,data_size_bounds,isInt)
 	for i in range(init_rand_candidates.shape[0]):
 		rand_candidate = init_rand_candidates[i]
-		output = score_function(rand_candidate)
+		new_output = score_function(rand_candidate)
 		
 		if(verbose):
-			print('Random try '+str(rand_candidate)+', score : '+str(output))
+			print('Random try '+str(rand_candidate)+', score : '+str(np.mean(new_output)))
 			
 		if(parameters is None):
 			parameters = np.asarray([rand_candidate])
-			outputs = np.asarray([output])
-		else:	
-			parameters = np.concatenate((parameters,[rand_candidate]))
-			outputs = np.concatenate((outputs,[output]))
-		
-		parameters,outputs = compute_unique2(parameters,outputs)
+			raw_outputs = [new_output]
+			mean_outputs = [np.mean(new_output)]
+			std_outputs = [np.std(new_output)]
+		else:
+			parameters,raw_outputs,mean_outputs,std_outputs = \
+				add_results(parameters,raw_outputs,mean_outputs,std_outputs,rand_candidate,new_output)		
 
 	all_parameters = []
-	all_outputs = []
+	all_raw_outputs = []
+	all_mean_outputs = []
+	all_std_outputs = []
 	for i in range(nb_model):
 		if(modelToRun[i]):
 			all_parameters.append(np.copy(parameters))
-			all_outputs.append(outputs)
-	all_parameters = np.asarray(all_parameters)
-	all_outputs = np.asarray( all_outputs)
-	print(all_parameters.shape)
+			all_raw_outputs.append(list(raw_outputs))
+			all_mean_outputs.append(list(mean_outputs))
+			all_std_outputs.append(list(std_outputs))
+	# all_parameters = np.asarray(all_parameters)
+	# all_raw_outputs = np.asarray( all_raw_outputs)
+	print(all_parameters[0].shape)
 		
 		
 	#------------------------ Smart Sampling ------------------------#
@@ -171,7 +175,7 @@ def smartSampling(nb_iter,
 			model_idx=0
 			for k in range(nb_model):
 				if(modelToRun[k]):
-					print k,'current best output',np.max(all_outputs[model_idx,:])
+					print k,'current best output',np.max(all_mean_outputs[model_idx])
 					model_idx += 1	
 				
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt)
@@ -179,37 +183,34 @@ def smartSampling(nb_iter,
 		if(verbose):
 			print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
 		
-		all_new_parameters = []
-		all_new_outputs = []
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
 				best_candidate = find_best_candidate(k,
 													 all_parameters[model_idx],
-													 all_outputs[model_idx],
+													 all_raw_outputs[model_idx],
+													 all_mean_outputs[model_idx],
+													 all_std_outputs[model_idx],
 													 data_size_bounds,
 													 GCP_args,
 													 rand_candidates,
 													 verbose,
 													 acquisition_function)
-				output = score_function(best_candidate)
+				new_output = score_function(best_candidate)
 
-				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
-				new_parameters,new_outputs = compute_unique2( np.concatenate((all_parameters[model_idx],[best_candidate])),
-															  np.concatenate((all_outputs[model_idx],[output])) )
-				all_new_parameters.append(new_parameters)
-				all_new_outputs.append(new_outputs)
+				all_parameters[model_idx],all_raw_outputs[model_idx],\
+					all_mean_outputs[model_idx],all_std_outputs[model_idx] = \
+						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
+							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
+								best_candidate,new_output)		
 
 				model_idx += 1
 					
 				if(verbose):
-					print k,'Test paramter:', best_candidate,' - ***** accuracy:',output
-			
-		# ToDo clean this
-		all_parameters = np.asarray(all_new_parameters)
-		all_outputs = np.asarray(all_new_outputs)	
-
-				
+					print k,'Test paramter:', best_candidate,' - ***** accuracy:',new_output
+					#print 'mean outputs'
+					# print(all_mean_outputs)
+					# print '\n'		
 
 	#----------------- Last step : Try to find the max -----------------#
 
@@ -228,55 +229,56 @@ def smartSampling(nb_iter,
 		
 		rand_candidates = sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt)
 		
-		all_new_parameters = []
-		all_new_outputs = []
+		if(verbose):
+			print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
+		
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
-				# Here we choose acquisition_function == 'HighScoreHighConfidence'
-				# to trade-off the high score and high confidence desired
 				best_candidate = find_best_candidate(k,
 													 all_parameters[model_idx],
-													 all_outputs[model_idx],
+													 all_raw_outputs[model_idx],
+													 all_mean_outputs[model_idx],
+													 all_std_outputs[model_idx],
 													 data_size_bounds,
 													 GCP_args,
 													 rand_candidates,
 													 verbose,
-													 acquisition_function='Simple') #acquisition_function='HighScoreHighConfidence'
-				output = score_function(best_candidate)
+													 acquisition_function='Simple')
+				new_output = score_function(best_candidate)
 
-				# erase duplicates as it can cause errors in GCP.fit and GCP.predict
-				new_parameters,new_outputs = compute_unique2( np.concatenate((all_parameters[model_idx],[best_candidate])),
-															  np.concatenate((all_outputs[model_idx],[output])) )
-				all_new_parameters.append(new_parameters)
-				all_new_outputs.append(new_outputs)
+				all_parameters[model_idx],all_raw_outputs[model_idx],\
+					all_mean_outputs[model_idx],all_std_outputs[model_idx] = \
+						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
+							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
+								best_candidate,new_output)		
 
 				model_idx += 1
 					
 				if(verbose):
-					print k,'Test paramter:', best_candidate,' - ***** accuracy:',output
+					print k,'Test paramter:', best_candidate,' - ***** accuracy:',new_output
 			
-		# ToDo clean this
-		all_parameters = np.asarray(all_new_parameters)
-		all_outputs = np.asarray(all_new_outputs)	
-			
+
 	#--------------------------- Final Result ---------------------------#
+
+	##### ToDo ####
+	##### Return something else that the parameters that max mean_outputs (=mean)
 
 	best_parameters = []
 	
 	model_idx = 0
 	for k in range(nb_model):
 		if(modelToRun[k]):
-			best_parameter_idx = np.argmax(all_outputs[model_idx])
+			best_parameter_idx = np.argmax(all_mean_outputs[model_idx])
 			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
 			if(data_size_bounds is not None):
-				best_parameter_idx2 = np.argmax(all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
-			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_outputs[model_idx][best_parameter_idx])
+				best_parameter_idx2 = np.argmax(all_mean_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
+			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_mean_outputs[model_idx][best_parameter_idx])
 			if(data_size_bounds is not None):
 				print k,'Best parameters for complete dataset'+ \
 									str( (all_parameters[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2]) \
 									+ ' with output: ' + \
-									str( (all_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2])
+									str( (all_mean_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2])
 
 			model_idx += 1
 	best_parameters = np.asarray(best_parameters)
@@ -288,9 +290,9 @@ def smartSampling(nb_iter,
 		print_utils_parameters()
 	
 	if(returnAllParameters):
-		return all_parameters , all_outputs
+		return all_parameters , all_raw_outputs, all_mean_outputs, all_std_outputs
 	else:
-		return best_parameters
+		return all_parameters, all_raw_outputs
 
 	
 
