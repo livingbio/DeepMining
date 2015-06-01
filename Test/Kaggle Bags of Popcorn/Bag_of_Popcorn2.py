@@ -1,4 +1,4 @@
-n_exp = 1060
+n_exp = 2001
 
 import os
 from sklearn.feature_extraction.text import CountVectorizer
@@ -42,8 +42,8 @@ print nb_reviews
 
 ### Fix parameters of the problem : ####
 parameter_bounds = np.asarray( [[1000,15000],[50,1000]] )
-nb_GCP_steps = 80
-pop_size = 1000   
+nb_GCP_steps = 70
+pop_size = 5000   
 data_size_bounds = [pop_size,pop_size] ## constant here !
 
 
@@ -59,7 +59,7 @@ def scoring_function(parameters):
 
 
 def scoring_function_cv(subsample_clean_reviews,Y,parameters):
-    pop_size,nb_features,n_estimators = parameters
+    nb_features,n_estimators = parameters
 
     vectorizer = CountVectorizer(analyzer = "word",
                                 tokenizer = None,          
@@ -99,15 +99,20 @@ def scoring_function_cv(subsample_clean_reviews,Y,parameters):
 
 print 'Start exp',n_exp
 
-all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
-                                            data_size_bounds = data_size_bounds,
-                                            model = 'all', nb_parameter_sampling=2000,
-                                            nb_random_steps=20, n_clusters=1,verbose=True)
+all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs = \
+    smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
+                                            #data_size_bounds = data_size_bounds,
+                                            model = 'GCP', nb_parameter_sampling=2000,
+                                            nb_random_steps=30, n_clusters=1,verbose=True,
+                                            acquisition_function = 'EI')
 
 
-print all_outputs.shape
 print 'Exp',n_exp,'has just finished'
 
+
 for i in range(all_outputs.shape[0]):
-    np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),all_outputs[i], delimiter=",")
+    f =open(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),'w')
+    for line in all_raw_outputs[i]:
+        print>>f,line
+    f.close()
     np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")

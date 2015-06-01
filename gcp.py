@@ -199,7 +199,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
 				 considerAllObs1=True,
-				 considerAllObs2=False,
+				 considerAllObs2=True,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
@@ -285,6 +285,52 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			return [res]
 		else:
 			return [2047483647]
+
+
+	def mapping_derivate(self,x,t):
+		v = 0.
+		if( t < 2047483646):
+			if(self.n_clusters > 1):
+				coefs = np.ones(self.n_clusters)
+				val = np.zeros(self.n_clusters)
+				store_temp = []
+				has_null_temp = False
+				for w in range(self.n_clusters):
+					## coefficients are :
+					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
+					coefs[w] =  np.exp(- np.sum( (self.coef_var_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
+					# computing Psi_i (t) 
+					temp =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
+					temp = min(0.999999998,temp)
+					temp = max( temp, 1e-10)
+					temp = norm.ppf(temp)
+					# pdf( Psi_i (t))
+					temp = norm.pdf(temp)
+					# d_est_i / pdf(...)
+					temp = self.density_functions[w](t) / temp
+					val[w] = temp * coef[w]
+				s = np.sum(coefs)
+				val = val / s
+				v = np.sum(val)
+
+				if(math.isnan(v)):
+					print('Warning v == nan')
+					print(val,coefs,x)
+				if(has_null_temp and self.verboseMapping):
+					print(coefs/s,store_temp,self.low_bound,t)
+			else:
+				temp =  self.density_functions[0].integrate_box_1d(self.low_bound, t)
+				temp = min(0.999999998,temp)
+				temp = max( temp, 1e-10)
+				temp = norm.ppf(temp)
+				# pdf( Psi (t))
+				temp = norm.pdf(temp)
+				# d_est / pdf(...)
+				v = self.density_functions[0](t) / temp
+		else:  
+	        	v = 0.
+			
+		return v		
 
 
 	def init_mappings(self):
@@ -645,14 +691,14 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					return y,MSE,pred_with_boundL,pred_with_boundU
 						
 				else:
-					if(self.n_clusters > 1):
-						center = np.mean(self.centroids)
-					else:
-						center = 0.
-					sigma = np.sqrt(MSE)
-					coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-					coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-					return y, MSE, coefL, coefU
+					#if(self.n_clusters > 1):
+					#	center = np.mean(self.centroids)
+					#else:
+					#	center = 0.
+					#sigma = np.sqrt(MSE)
+					#coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
+					#coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
+					return y, MSE #, coefL, coefU
 			
 			else:
 				return y, MSE

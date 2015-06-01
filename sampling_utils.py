@@ -7,6 +7,7 @@ import numpy as np
 from random import randint, randrange
 from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
+from scipy import integrate
 
 nugget = 0.00001/100.
 GCP_upperBound_coef = 2.
@@ -91,7 +92,22 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundL[best_candidate_idx],boundU[best_candidate_idx]
+
+	elif(acquisition_function=='EI'):
 	
+		predictions,MSE = \
+				mean_gcp.predict(rand_candidates,eval_MSE=True)
+		y_best = np.max(mean_Y)
+		sigma = np.sqrt(MSE)
+		ei = [ compute_ei(rand_candidates[i],predictions[i],sigma[i],y_best, \
+						mean_gcp.mapping,mean_gcp.mapping_derivate) \
+				for i in range(rand_candidates.shape[0]) ]
+		#print(ei)
+		best_candidate_idx = np.argmax(ei)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], ei[best_candidate_idx]
+
 	elif(acquisition_function=='HighScoreHighConfidence'):
 	
 		predictions,MSE,boundL,boundU = mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
@@ -225,6 +241,17 @@ def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_o
 		std_outputs.append(np.std(new_output))
 	
 	return parameters,raw_outputs,score_outputs,std_outputs
+
+
+def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
+	if(f_best >= 1.):
+		print('Error in compute_ei : f_best > 1')
+
+	def f_to_integrate(u):
+		temp = u * Psi_prim(x,f_best+u) / sigma
+		temp = temp * np.exp( - 0.5 * ((m - Psi(x,f_best+u)[0])/ sigma )**2. )
+		return temp
+	return integrate.quad(f_to_integrate,0,1.-f_best)[0]
 
 
 def compute_unique1(a):
