@@ -75,6 +75,16 @@ def listOfList_toArray(params,obs):
 
 	return all_params,array_obs
 
+def reshape_cluster_labels(labels,detailed_X):
+	detailed_labels = [labels[0]]
+	unique_count = 0 # to map to 'labels' list
+	for i in range(1,detailed_X.shape[0]):
+		if( any(detailed_X[i] != detailed_X[i-1])):
+			unique_count += 1
+		detailed_labels.append(labels[unique_count])
+
+	return np.asarray(detailed_labels)
+
 
 def l1_cross_distances(X):
     """

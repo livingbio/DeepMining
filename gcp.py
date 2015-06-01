@@ -220,6 +220,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.x_wrapping = x_wrapping
 		self.verboseMapping = True
 		self.coef_var_mapping = coef_var_mapping
+		self.considerAllObs1 = considerAllObs1
+		self.considerAllObs2 =considerAllObs2
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -290,7 +292,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
 			all_data = np.asarray(all_data)
 			print('All data shape :',all_data.shape)
-			windows_idx = kmeans.fit_predict(all_data)#self.X)
+			windows_idx = kmeans.fit_predict(all_data) #self.X)
 			self.centroids = kmeans.cluster_centers_[:,:-1]
 			print ("Centroids")
 			print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
@@ -298,8 +300,16 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			# Compute the density function for each sub-window
 			density_functions = []
 			clusters_std = []
+			if(self.detailed_raw_y is not None and self.considerAllObs1):
+				detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
+				print (detailed_windows_idx)
+
 			for w in range(self.n_clusters):
-				cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
+				if(self.detailed_raw_y is not None and self.considerAllObs1):
+					print ((self.detailed_raw_y[ detailed_windows_idx == w]).shape)
+					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w]))
+				else:
+					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
 				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
 				print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
@@ -311,8 +321,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('---STD---')
 			print(clusters_std)	
 		else:
-			if(self.detailed_y is not None and considerAllObs1):
-				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_y) ])
+			if(self.detailed_raw_y is not None and self.considerAllObs1):
+				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y) ])
 			else:
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
 		
@@ -391,8 +401,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		
 		# Check if all CV obs are given
 		# and if so, convert this list of list to array
-		if(detailed_y_obs is not None and considerAllObs1):
-			detailed_X,detailed_y = listOfList_toArray(X,detailed_y_obs)	
+		if(detailed_y_obs is not None and self.considerAllObs1):
+			detailed_X,detailed_raw_y = listOfList_toArray(X,detailed_y_obs)	
 
 		# Reshape theta if it is one dimensional and X is not
 		x_dim = X.shape[1]
@@ -425,23 +435,28 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raw_y_std = np.std(y, axis=0)
 			raw_y_std[raw_y_std == 0.] = 1.
 			y = (y - raw_y_mean) / raw_y_std
-			if(detailed_y_obs is not None and considerAllObs1):
-				detailed_y = (detailed_y - raw_y_mean) / raw_y_std
-
+			if(detailed_y_obs is not None and self.considerAllObs1):
+				detailed_raw_y = (detailed_raw_y - raw_y_mean) / raw_y_std
+				detailed_X = (detailed_X - X_mean) / X_std
 		else:
 			X_mean = np.zeros(1)
 			X_std = np.ones(1)
 		
-		self.raw_y = y
-		if(detailed_y_obs is not None and considerAllObs1):
-			self.detailed_y = detailed_y
+		
+		# Set attributes
+
+		if(detailed_y_obs is not None and self.considerAllObs1):
+			self.detailed_raw_y = detailed_raw_y
+			self.detailed_X = detailed_X
 		else:
-			self.detailed_y = None			
+			self.detailed_raw_y = None			
+			self.detailed_X = None			
+		
+		self.raw_y = y
 		self.raw_y_mean = raw_y_mean
 		self.raw_y_std = raw_y_std
 		self.low_bound = np.min([-500., 5. * np.min(y)])
 		
-		# Set attributes
 		self.X = X
 		self.X_mean, self.X_std = X_mean, X_std
 
