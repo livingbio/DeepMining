@@ -91,11 +91,10 @@ def scoring_function_cv(subsample_clean_reviews,Y,parameters):
         Y_pred = forest.predict(X[test_idx,:])
         res = np.sum(Y_pred == Y[test_idx])/(n_reviews/5.)
         cv_results.append(res)
-    print 'CV res :',cv_results
     cv_std = np.std(cv_results)
     print 'STD:',cv_std
 
-    return np.mean(cv_results)-0.5*cv_std
+    return cv_results
 
 print 'Start exp',n_exp
 
