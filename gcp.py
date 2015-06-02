@@ -236,7 +236,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		else:
 			self.corr = exponential_periodic
 		
-	def mapping(self,x,t):
+	def mapping(self,x,t,normalize=False):
+		if(normalize):
+			t = (t-self.raw_y_mean) / self.raw_y_std
 		v = 0.
 		if( t < 2047483647):
 			if(self.n_clusters > 1):
@@ -287,7 +289,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			return [2047483647]
 
 
-	def mapping_derivate(self,x,t):
+	def mapping_derivate(self,x,t,normalize=False):
+		if(normalize):
+			t = (t-self.raw_y_mean) / self.raw_y_std
 		v = 0.
 		if( t < 2047483646):
 			if(self.n_clusters > 1):
@@ -330,7 +334,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		else:  
 	        	v = 0.
 			
-		return v		
+		return (v/self.raw_y_std)	
 
 
 	def init_mappings(self):
@@ -558,7 +562,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		return self
 
-	def predict(self, X, eval_MSE=False, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
+	def predict(self, X, eval_MSE=False, transformY=True,eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
 		"""
 		This function evaluates the Gaussian Process model at x.
 
@@ -594,7 +598,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			with the Mean Squared Error at x.
 		"""
 		self.verboseMapping = False
-		
+
 		# Check input shapes
 		X = array2d(X)
 		n_eval, _ = X.shape
@@ -637,9 +641,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# transform the warped y, modeled as a Gaussian, to the real y
 		size = y.shape[0]
 		warped_y = np.copy(y)
-		real_y = [ self.mapping_inv(X[i],y[i][0]) for i in range(size)]
-		real_y = self.raw_y_std * np.asarray(real_y) +self.raw_y_mean
-		y = real_y.reshape(n_eval, n_targets)
+		
+		if(transformY):
+			real_y = [ self.mapping_inv(X[i],y[i][0]) for i in range(size)]
+			real_y = self.raw_y_std * np.asarray(real_y) +self.raw_y_mean
+			y = real_y.reshape(n_eval, n_targets)
 		
 		if self.y_ndim_ == 1:
 			y = y.ravel()
@@ -683,6 +689,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				MSE = MSE.ravel()
 				
 				if(eval_confidence_bounds):
+					if not(transformY):
+						print('Warning, transformy set to False but trying to evaluate conf bounds')
 					sigma = np.sqrt(MSE)
 					warped_y_with_boundL = warped_y - 1.9600 * sigma
 					warped_y_with_boundU = warped_y + upperBoundCoef * sigma

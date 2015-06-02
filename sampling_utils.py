@@ -96,7 +96,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_
 	elif(acquisition_function=='EI'):
 	
 		predictions,MSE = \
-				mean_gcp.predict(rand_candidates,eval_MSE=True)
+				mean_gcp.predict(rand_candidates,eval_MSE=True,transformY=False) # we want the predictions in the GP space
 		y_best = np.max(mean_Y)
 		sigma = np.sqrt(MSE)
 		ei = [ compute_ei(rand_candidates[i],predictions[i],sigma[i],y_best, \
@@ -246,10 +246,9 @@ def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_o
 def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
 	if(f_best >= 1.):
 		print('Error in compute_ei : f_best > 1')
-
 	def f_to_integrate(u):
-		temp = u * Psi_prim(x,f_best+u) / sigma
-		temp = temp * np.exp( - 0.5 * ((m - Psi(x,f_best+u)[0])/ sigma )**2. )
+		temp = u * Psi_prim(x,f_best+u,normalize=True) / sigma
+		temp = temp * np.exp( - 0.5 * ((m - Psi(x,f_best+u,normalize=True)[0])/ sigma )**2. )
 		return temp
 	return integrate.quad(f_to_integrate,0,1.-f_best)[0]
 
