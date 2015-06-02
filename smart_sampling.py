@@ -100,6 +100,8 @@ def smartSampling(nb_iter,
 	modelToRun = np.zeros(nb_model)
 	if(model == 'all'):
 		modelToRun = np.asarray([1,1,1])
+	elif(model == 'GCPR'):
+		modelToRun = np.asarray([1,0,1])	
 	elif(model == 'GCP'):
 		modelToRun[0] = 1
 	elif(model == 'GP'):
@@ -128,6 +130,7 @@ def smartSampling(nb_iter,
 	# sample nb_random_steps random parameters to initialize the process
 	init_rand_candidates = sample_random_candidates_for_init(nb_random_steps,parameter_bounds,data_size_bounds,isInt)
 	for i in range(init_rand_candidates.shape[0]):
+		print i
 		rand_candidate = init_rand_candidates[i]
 		new_output = score_function(rand_candidate)
 		
