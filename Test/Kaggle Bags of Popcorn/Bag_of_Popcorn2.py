@@ -1,4 +1,4 @@
-n_exp = 2001
+n_exp = 2011
 
 import os
 from sklearn.feature_extraction.text import CountVectorizer
@@ -43,7 +43,7 @@ print nb_reviews
 ### Fix parameters of the problem : ####
 parameter_bounds = np.asarray( [[1000,15000],[50,1000]] )
 nb_GCP_steps = 70
-pop_size = 5000   
+pop_size = 500   
 data_size_bounds = [pop_size,pop_size] ## constant here !
 
 
@@ -101,7 +101,7 @@ print 'Start exp',n_exp
 all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs = \
     smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                             #data_size_bounds = data_size_bounds,
-                                            model = 'GCP', nb_parameter_sampling=2000,
+                                            model = 'GCPR', nb_parameter_sampling=2000,
                                             nb_random_steps=30, n_clusters=1,verbose=True,
                                             acquisition_function = 'EI')
 
@@ -109,7 +109,7 @@ all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs = \
 print 'Exp',n_exp,'has just finished'
 
 
-for i in range(all_outputs.shape[0]):
+for i in range(len(all_raw_outputs)):
     f =open(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/exp_results/exp" +str(n_exp)+"/output_"+str(i)+".csv"),'w')
     for line in all_raw_outputs[i]:
         print>>f,line
