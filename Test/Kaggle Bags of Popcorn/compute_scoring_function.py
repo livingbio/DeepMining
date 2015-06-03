@@ -1,5 +1,6 @@
-n_words = 400
-n_computations = 10000
+n_words = 500
+n_run = 0
+n_computations = 1000
 pop_size = 500   
 
 
@@ -28,8 +29,8 @@ nb_final_steps = 0
 
 
 ### set directory
-if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/scoring_function/words" +str(n_words)):
-    os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/scoring_function/words" +str(n_words))
+if not os.path.exists("scoring_function/words" +str(n_words)):
+    os.mkdir("scoring_function/words" +str(n_words))
 else:
     print('Be carefull, directory already exists')
 
@@ -102,10 +103,10 @@ all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring
 
 #print all_outputs
 
-f =open(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/scoring_function/words" +str(n_words)+"/output.csv"),'w')
+f =open(("scoring_function/words" +str(n_words)+"/output_"+str(n_run)+".csv"),'w')
 for line in all_outputs[0]:
     #for item in line:
     print>>f,line
     #print>>f,'\n'
 
-np.savetxt(("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/Kaggle Bags of Popcorn/scoring_function/words" +str(n_words)+"/param.csv"),all_parameters[0], delimiter=",")
+np.savetxt(("scoring_function/words" +str(n_words)+"/param_"+str(n_run)+".csv"),all_parameters[0], delimiter=",")
