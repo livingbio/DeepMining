@@ -256,10 +256,16 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					if(temp == 0):
 						temp = 1e-10
 						has_null_temp = True
-					val[w] = ( norm.ppf( temp) ) * coefs[w]
+					val[w] = ( norm.ppf( temp) ) 
+				
 				s = np.sum(coefs)
+				if(s != 0):
+					val = val * coefs
+				else:
+					s = 4.
 				val = val / s
 				v = np.sum(val)
+				
 				if(math.isnan(v)):
 					print('Warning v == nan')
 					print(val,coefs,x)
@@ -312,8 +318,12 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					temp = norm.pdf(temp)
 					# d_est_i / pdf(...)
 					temp = self.density_functions[w](t) / temp
-					val[w] = temp * coef[w]
+					val[w] = temp
 				s = np.sum(coefs)
+				if(s != 0):
+					val = val * coefs
+				else:
+					s = 4.
 				val = val / s
 				v = np.sum(val)
 
@@ -930,8 +940,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			
 			def kernel_coef(x):
 				return(100. - ((10. ** x[0]) + (10. ** x[1]) + (10. ** x[2]) ))
-		
-			n_idx = self.theta.size -3*(self.theta.shape[1]-1)	
+			
+			if(self.theta.shape[0] > 1):
+				n_idx = self.theta.size -3*(self.theta.shape[1]-1)	
+			else:
+				n_idx = self.theta.size
 			for idx in range(n_idx):
 				lower = conL[idx]
 				upper = conU[idx]
@@ -980,7 +993,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				except ValueError as ve:
 					opt_minus_rlf = 999999999.
 					k2 += 1
-					#raise ve
+					raise ve
 					print('Warning, exception raised in Cobyla')
 				
 				if(opt_minus_rlf != 999999999. ):

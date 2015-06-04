@@ -15,6 +15,7 @@ def theta_toOneDim(theta):
 	if(theta.shape[1] == 1):
 		return theta[:,0]
 	if(theta.shape[0] > 1):
+
 		# we don't want t0,t1,t2 to varry with the axis
 		theta_1dim = np.mean( theta[:3,:],axis=1) #take the mean in case there has been a error somewhere
 		theta_1dim = np.concatenate((theta_1dim, (theta[3:,:]).reshape(1,theta.size-3*theta.shape[1])[0] ))
@@ -24,13 +25,16 @@ def theta_toOneDim(theta):
 	
 	
 def theta_backToRealShape(theta_1dim,theta_shape):
-	temp = []
-	for i in range(theta_shape[1]):
-		temp.append(theta_1dim[:3])
-	theta = ( np.asarray(temp)).T	
-	theta = np.concatenate((theta, (theta_1dim[3:]).reshape([theta_shape[0]-3,theta_shape[1]]) ))
-	
-	return theta
+	if(theta_shape[0] > 1):
+		temp = []
+		for i in range(theta_shape[1]):
+			temp.append(theta_1dim[:3])
+		theta = ( np.asarray(temp)).T	
+		theta = np.concatenate((theta, (theta_1dim[3:]).reshape([theta_shape[0]-3,theta_shape[1]]) ))
+		
+		return theta
+	else:
+		return theta_1dim
 
 	
 def find_bounds(f, y):
@@ -124,7 +128,7 @@ def l1_cross_distances(X):
 	
 	
 def sq_exponential(theta,d):
-	return np.exp( - np.sum( theta.reshape(1, theta.size) * d ** 2, axis=1)  )
+	return np.exp( - np.sum( theta * d ** 2, axis=1)  )
 
 
 def exponential_periodic(theta,d):
