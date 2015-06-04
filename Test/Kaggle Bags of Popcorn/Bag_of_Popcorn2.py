@@ -45,7 +45,8 @@ parameter_bounds = np.asarray( [[1000,15000],[50,1000]] )
 nb_GCP_steps = 70
 pop_size = 500   
 data_size_bounds = [pop_size,pop_size] ## constant here !
-
+GCPconsiderAllObs1=False
+GCPconsiderAllObs2=True
 
 def scoring_function(parameters):
     subsample_idx = range(25000)
@@ -103,6 +104,7 @@ all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs = \
                                             #data_size_bounds = data_size_bounds,
                                             model = 'GCPR', nb_parameter_sampling=2000,
                                             nb_random_steps=30, n_clusters=1,verbose=True,
+                                            GCPconsiderAllObs1=GCPconsiderAllObs1, GCPconsiderAllObs2=GCPconsiderAllObs2,
                                             acquisition_function = 'EI')
 
 

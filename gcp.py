@@ -451,14 +451,14 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		X = array2d(X)
 		# Check if all CV obs are given
 		# and if so, convert this list of list to array
-		if(detailed_y_obs is not None and self.considerAllObs1):
+		if(detailed_y_obs is not None):
 			detailed_X,detailed_raw_y = listOfList_toArray(X,detailed_y_obs)	
 
 		y = np.asarray(y)
 		self.y_ndim_ = y.ndim
 		if y.ndim == 1:
 			y = y[:, np.newaxis]
-			if(detailed_y_obs is not None and self.considerAllObs1):
+			if(detailed_y_obs is not None):
 				detailed_raw_y = detailed_raw_y[:, np.newaxis]
 		else:
 			print('Warning: code is not ready for y outputs with dimension > 1')
@@ -494,7 +494,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raw_y_std = np.std(y, axis=0)
 			raw_y_std[raw_y_std == 0.] = 1.
 			y = (y - raw_y_mean) / raw_y_std
-			if(detailed_y_obs is not None and self.considerAllObs1):
+			if(detailed_y_obs is not None):
 				detailed_raw_y = (detailed_raw_y - raw_y_mean) / raw_y_std
 				detailed_X = (detailed_X - X_mean) / X_std
 		else:
@@ -504,33 +504,68 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		
 		# Set attributes
 
-		if(detailed_y_obs is not None and self.considerAllObs1):
+		if(detailed_y_obs is not None):
 			self.detailed_raw_y = detailed_raw_y
 			self.detailed_X = detailed_X
 		else:
 			self.detailed_raw_y = None			
 			self.detailed_X = None			
 		
-		if(self.considerAllObs2 and self.detailed_raw_y is not None):
+		if(self.detailed_raw_y is not None and self.considerAllObs1 and self.considerAllObs2 ):
 			self.X = self.detailed_X
 			self.raw_y = self.detailed_raw_y
+			
+			self.raw_y_mean = raw_y_mean
+			self.raw_y_std = raw_y_std
+			self.low_bound = np.min([-500., 5. * np.min(y)])
+			self.X_mean, self.X_std = X_mean, X_std
+
+			#if(self.x_wrapping != 'none'):
+			#	X = GCP_Xwrapping(X,self.x_wrapping)
+			
+			# initialize mapping only if needed, i.e. it hasn't be done 
+			# yet of if we want to optimize the GCP hyperparameters
+			if (self.try_optimize or (self.density_functions is None)):
+				self.init_mappings()
+		
+		elif(self.detailed_raw_y is not None and self.considerAllObs2 ):
+			self.X = X
+			self.raw_y = y
+
+			self.raw_y_mean = raw_y_mean
+			self.raw_y_std = raw_y_std
+			self.low_bound = np.min([-500., 5. * np.min(y)])
+			self.X_mean, self.X_std = X_mean, X_std
+
+			#if(self.x_wrapping != 'none'):
+			#	X = GCP_Xwrapping(X,self.x_wrapping)
+			
+			# initialize mapping only if needed, i.e. it hasn't be done 
+			# yet of if we want to optimize the GCP hyperparameters
+			if (self.try_optimize or (self.density_functions is None)):
+				self.init_mappings()
+
+			self.X = self.detailed_X
+			self.raw_y = self.detailed_raw_y
+
 		else:
 			self.X = X
 			self.raw_y = y
-		
-		self.raw_y_mean = raw_y_mean
-		self.raw_y_std = raw_y_std
-		self.low_bound = np.min([-500., 5. * np.min(y)])
-		self.X_mean, self.X_std = X_mean, X_std
 
-		#if(self.x_wrapping != 'none'):
-		#	X = GCP_Xwrapping(X,self.x_wrapping)
-		
-		# initialize mapping only if needed, i.e. it hasn't be done 
-		# yet of if we want to optimize the GCP hyperparameters
-		if (self.try_optimize or (self.density_functions is None)):
-			self.init_mappings()
-		
+			self.raw_y_mean = raw_y_mean
+			self.raw_y_std = raw_y_std
+			self.low_bound = np.min([-500., 5. * np.min(y)])
+			self.X_mean, self.X_std = X_mean, X_std
+
+			#if(self.x_wrapping != 'none'):
+			#	X = GCP_Xwrapping(X,self.x_wrapping)
+			
+			# initialize mapping only if needed, i.e. it hasn't be done 
+			# yet of if we want to optimize the GCP hyperparameters
+			if (self.try_optimize or (self.density_functions is None)):
+				self.init_mappings()
+
+
 		self.update_copula_params()
 		
 		if self.try_optimize:

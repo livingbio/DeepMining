@@ -38,13 +38,15 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
-	
+	GCPconsiderAllObs1 = args[2]
+	GCPconsiderAllObs2 = args[3]
+
 	mean_gcp = GaussianCopulaProcess(nugget = nugget,
 								corr=corr_kernel,
 								random_start=5,
 								n_clusters=n_clusters,
-							 	considerAllObs1=True,
-				 				considerAllObs2=True,
+							 	considerAllObs1=GCPconsiderAllObs1,
+				 				considerAllObs2=GCPconsiderAllObs2,
 								try_optimize=True)
 	mean_gcp.fit(X,mean_Y,raw_Y)
 
