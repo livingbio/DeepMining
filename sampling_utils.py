@@ -252,7 +252,7 @@ def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
 		temp = u * Psi_prim(x,f_best+u,normalize=True) / sigma
 		temp = temp * np.exp( - 0.5 * ((m - Psi(x,f_best+u,normalize=True)[0])/ sigma )**2. )
 		return temp
-	return integrate.quad(f_to_integrate,0,1.-f_best)[0]
+	return integrate.quad(f_to_integrate,0,2.-f_best)[0]
 
 
 def compute_unique1(a):
