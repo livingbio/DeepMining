@@ -101,7 +101,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_
 				mean_gcp.predict(rand_candidates,eval_MSE=True,transformY=False) # we want the predictions in the GP space
 		y_best = np.max(mean_Y)
 		sigma = np.sqrt(MSE)
-		ei = [ compute_ei(rand_candidates[i],predictions[i],sigma[i],y_best, \
+		ei = [ compute_ei((rand_candidates[i]-mean_gcp.X_mean)/mean_gcp.X_std,predictions[i],sigma[i],y_best, \
 						mean_gcp.mapping,mean_gcp.mapping_derivate) \
 				for i in range(rand_candidates.shape[0]) ]
 		#print(ei)
