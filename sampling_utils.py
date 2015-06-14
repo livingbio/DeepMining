@@ -227,7 +227,7 @@ def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,dat
 	return candidates
 
 def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_output):
-	is_in,idx = is_in_2darray(new_param,parameters)
+	is_in,idx = is_in_ndarray(new_param,parameters)
 	if(is_in):
 		#print('Parameter already tested in',idx)
 		# parameters is already in our log
@@ -283,3 +283,18 @@ def is_in_2darray(item,a):
 			return False,0
 	else:
 		return False,0
+
+def is_in_ndarray(item,a):
+	k = 0
+	idx_val = np.asarray(range(a.shape[0]))
+	idxk = range(a.shape[0])
+	while( k < a.shape[1]):
+		idxk =  (a[idxk,k]==item[k])
+		if(np.sum(idxk > 0)):
+			k += 1
+			idx_val = idx_val[idxk]
+			idxk = list(idx_val) 
+		else:
+			return False,0
+
+	return True,idx_val[0]
