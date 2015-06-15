@@ -125,7 +125,7 @@ def smartSampling(nb_iter,
 	# to store the results
 	parameters = None
 	raw_outputs = None
-
+	param_path = []
 
 	#-------------------- Random initialization --------------------#
 
@@ -146,18 +146,21 @@ def smartSampling(nb_iter,
 			std_outputs = [np.std(new_output)]
 		else:
 			parameters,raw_outputs,mean_outputs,std_outputs = \
-				add_results(parameters,raw_outputs,mean_outputs,std_outputs,rand_candidate,new_output)		
+				add_results(parameters,raw_outputs,mean_outputs,std_outputs,rand_candidate,new_output)
+		param_path.append(rand_candidate)		
 
 	all_parameters = []
 	all_raw_outputs = []
 	all_mean_outputs = []
 	all_std_outputs = []
+	all_param_path = []
 	for i in range(nb_model):
 		if(modelToRun[i]):
 			all_parameters.append(np.copy(parameters))
 			all_raw_outputs.append(list(raw_outputs))
 			all_mean_outputs.append(list(mean_outputs))
 			all_std_outputs.append(list(std_outputs))
+			all_param_path.append(list(param_path))
 	# all_parameters = np.asarray(all_parameters)
 	# all_raw_outputs = np.asarray( all_raw_outputs)
 	print(all_parameters[0].shape)
@@ -208,7 +211,8 @@ def smartSampling(nb_iter,
 					all_mean_outputs[model_idx],all_std_outputs[model_idx] = \
 						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
 							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
-								best_candidate,new_output)		
+								best_candidate,new_output)	
+				all_param_path[model_idx].append(best_candidate)	
 
 				model_idx += 1
 					
@@ -258,6 +262,8 @@ def smartSampling(nb_iter,
 						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
 							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
 								best_candidate,new_output)		
+				
+				all_param_path[model_idx].append(best_candidate)	
 
 				model_idx += 1
 					
@@ -296,7 +302,7 @@ def smartSampling(nb_iter,
 		print_utils_parameters()
 	
 	if(returnAllParameters):
-		return all_parameters , all_raw_outputs, all_mean_outputs, all_std_outputs
+		return all_parameters , all_raw_outputs, all_mean_outputs, all_std_outputs, np.asarray(all_param_path)
 	else:
 		return all_parameters, all_raw_outputs
 
