@@ -21,6 +21,7 @@ def smartSampling(nb_iter,
 				   nb_iter_final = 5,
 				   nb_parameter_sampling=2000,
 				   n_clusters=1,
+				   n_clusters_max=5,
 				   cluster_evol = 'constant',
    				   GCPconsiderAllObs1=True,
 				   GCPconsiderAllObs2=True,
@@ -176,7 +177,7 @@ def smartSampling(nb_iter,
 
 		if(i/10 > (i_mod_10+1) and cluster_evol=='variable'):
 			GCP_args[0] = GCP_args[0]
-			GCP_args[1] = GCP_args[1]+1
+			GCP_args[1] = min(GCP_args[1]+1,n_clusters_max)
 			i_mod_10 += 2
 
 		if(verbose):

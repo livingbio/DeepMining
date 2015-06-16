@@ -224,7 +224,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.n_clusters = n_clusters
 		self.density_functions = None
 		# self.x_wrapping = x_wrapping
-		self.verboseMapping = True
+		self.verboseMapping = False
 		self.coef_var_mapping = coef_var_mapping
 		self.considerAllObs1 = considerAllObs1
 		self.considerAllObs2 =considerAllObs2
