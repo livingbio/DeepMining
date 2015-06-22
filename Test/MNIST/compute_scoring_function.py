@@ -24,10 +24,9 @@ print 'Arguments:',sys.argv
 
 ### Fix parameters : ####
 ### Fix parameters of the problem : ####
-# nb_features, feat_select,max_ngram_range,max_df, min_df, alpha_NB, mode_tfidf
 # pca_dim/50,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
-        [5,14],
+        [1,41],
         [1,5],
         [0,4]] )
 
@@ -37,8 +36,8 @@ nb_final_steps = 0
 
 
 ### set directory
-if not os.path.exists("scoring_function/pop" +str(pop_size)):
-    os.mkdir("scoring_function/pop" +str(pop_size))
+if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/pop" +str(pop_size)):
+    os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/pop" +str(pop_size))
 else:
     print('Be carefull, directory already exists')
 
@@ -64,7 +63,7 @@ def scoring_function(parameters):
 
 def scoring_function_cv(subsample_data,Y,parameters):
     pca_dim,d,g = parameters
-    pca_dim = 50 *pca_dim
+    pca_dim = 10 *pca_dim
     gamma = (10. ** g )/ 1000.
     
     pca = PCA(n_components = pca_dim)
