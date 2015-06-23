@@ -1,6 +1,6 @@
-n_computations = 25
+n_computations = 300
 pop_size = 5000
-
+dir_name = "v3_" + pop_size
 
 ### import ####
 import os
@@ -26,7 +26,8 @@ print 'Arguments:',sys.argv
 ### Fix parameters of the problem : ####
 # pca_dim/50,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
-        [1,41],
+        [0,6],[5,11],[0,6],[5,11],
+        [3,11],
         [1,5],
         [0,4]] )
 
@@ -36,8 +37,8 @@ nb_final_steps = 0
 
 
 ### set directory
-if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/pop" +str(pop_size)):
-    os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/pop" +str(pop_size))
+if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/"+dir_name):
+    os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/"+dir_name)
 else:
     print('Be carefull, directory already exists')
 
@@ -50,9 +51,23 @@ Y_data = np.asarray(target)
 
 print X_data.shape,Y_data.shape
 
+def patch_idx(ratio_w_shift,ratio_w,ratio_h_shift,ratio_h):
+    idx = []
+    w = ratio_w * 28 /10
+    w1 = 2*ratio_w_shift * (28 - w) / 10
+    w2 = w1 + w
+
+    h = ratio_h * 28 /10
+    h1 = 2*ratio_h_shift * (28 - h) / 10
+    h2 = h1 + h
+    #print w1,w2,h1,h2
+    for i in range(h1,h2):
+        for j in range(w1,w2):
+            idx.append(i*28+j)
+    return idx
 
 def scoring_function(parameters):
-    subsample_idx = range(35000)
+    subsample_idx = range(20000)
     random.shuffle(subsample_idx)
     subsample_idx = subsample_idx[:(pop_size)]
     #print subsample_idx
@@ -62,18 +77,21 @@ def scoring_function(parameters):
     return scoring_function_cv(subsample_data,sub_Y,parameters)
 
 def scoring_function_cv(subsample_data,Y,parameters):
-    pca_dim,d,g = parameters
-    pca_dim = 10 *pca_dim
+    ratio_w_shift,ratio_w,ratio_h_shift,ratio_h,pca_dim,d,g = parameters
     gamma = (10. ** g )/ 1000.
     
+    X= subsample_data[:,patch_idx(ratio_w_shift,ratio_w,ratio_h_shift,ratio_h)]
+    pca_dim = pca_dim * X.shape[1] / 10
+    
     pca = PCA(n_components = pca_dim)
-    X = pca.fit_transform(subsample_data)
-    kf = KFold(subsample_data.shape[0],n_folds=5)
+    X = pca.fit_transform(X)
+    
+    kf = KFold(pop_size,n_folds=5)
     cv_results = []
     for train_idx,test_idx in kf:
         X_cv,Y_cv = X[train_idx,:],Y[train_idx]
 
-        clf = SVC(kernel='poly',gamma=gamma,degree=d) #RandomForestClassifier(n_estimators=n_estimators)
+        clf = SVC(kernel='poly',gamma=gamma,degree=d) #,coef0=coef0) 
         clf.fit(X_cv,Y_cv)
         X_test = X[test_idx,:] 
         Y_pred = clf.predict(X_test)
@@ -99,10 +117,10 @@ all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring
 
 #print all_outputs
 
-f =open(("scoring_function/pop" +str(pop_size)+"/output_"+str(n_run)+".csv"),'w')
+f =open(("scoring_function/"+dir_name+"/output_"+str(n_run)+".csv"),'w')
 for line in all_outputs[0]:
     #for item in line:
     print>>f,line
     #print>>f,'\n'
 
-np.savetxt(("scoring_function/pop" +str(pop_size)+"/param_"+str(n_run)+".csv"),all_parameters[0], delimiter=",")
+np.savetxt(("scoring_function/"+dir_name+"/param_"+str(n_run)+".csv"),all_parameters[0], delimiter=",")
