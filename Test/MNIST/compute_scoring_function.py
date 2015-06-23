@@ -1,6 +1,6 @@
 n_computations = 300
 pop_size = 5000
-dir_name = "v3_" + pop_size
+dir_name = "v3_" + str(pop_size)
 
 ### import ####
 import os
@@ -37,8 +37,8 @@ nb_final_steps = 0
 
 
 ### set directory
-if not os.path.exists("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/"+dir_name):
-    os.mkdir("/afs/csail.mit.edu/u/s/sdubois/DeepMining/Test/MNIST/scoring_function/"+dir_name)
+if not os.path.exists("MNIST/scoring_function/"+dir_name):
+    os.mkdir("MNIST/scoring_function/"+dir_name)
 else:
     print('Be carefull, directory already exists')
 
