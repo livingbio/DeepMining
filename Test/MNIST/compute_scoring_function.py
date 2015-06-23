@@ -1,6 +1,6 @@
-n_computations = 300
+n_computations = 50
 pop_size = 5000
-dir_name = "v3_" + str(pop_size)
+dir_name = "v2_pop" + str(pop_size)
 
 ### import ####
 import os
@@ -23,11 +23,9 @@ print 'Arguments:',sys.argv
 
 
 ### Fix parameters : ####
-### Fix parameters of the problem : ####
-# pca_dim/50,degree,log10(gamma*1000)
+# pca_dim/10,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
-        [0,6],[5,11],[0,6],[5,11],
-        [3,11],
+        [1,36],
         [1,5],
         [0,4]] )
 
@@ -37,8 +35,8 @@ nb_final_steps = 0
 
 
 ### set directory
-if not os.path.exists("MNIST/scoring_function/"+dir_name):
-    os.mkdir("MNIST/scoring_function/"+dir_name)
+if not os.path.exists("scoring_function/"+dir_name):
+    os.mkdir("scoring_function/"+dir_name)
 else:
     print('Be carefull, directory already exists')
 
@@ -51,21 +49,6 @@ Y_data = np.asarray(target)
 
 print X_data.shape,Y_data.shape
 
-def patch_idx(ratio_w_shift,ratio_w,ratio_h_shift,ratio_h):
-    idx = []
-    w = ratio_w * 28 /10
-    w1 = 2*ratio_w_shift * (28 - w) / 10
-    w2 = w1 + w
-
-    h = ratio_h * 28 /10
-    h1 = 2*ratio_h_shift * (28 - h) / 10
-    h2 = h1 + h
-    #print w1,w2,h1,h2
-    for i in range(h1,h2):
-        for j in range(w1,w2):
-            idx.append(i*28+j)
-    return idx
-
 def scoring_function(parameters):
     subsample_idx = range(20000)
     random.shuffle(subsample_idx)
@@ -77,14 +60,12 @@ def scoring_function(parameters):
     return scoring_function_cv(subsample_data,sub_Y,parameters)
 
 def scoring_function_cv(subsample_data,Y,parameters):
-    ratio_w_shift,ratio_w,ratio_h_shift,ratio_h,pca_dim,d,g = parameters
+    pca_dim,d,g = parameters
     gamma = (10. ** g )/ 1000.
-    
-    X= subsample_data[:,patch_idx(ratio_w_shift,ratio_w,ratio_h_shift,ratio_h)]
-    pca_dim = pca_dim * X.shape[1] / 10
-    
+    pca_dim = 10*pca_dim
+
     pca = PCA(n_components = pca_dim)
-    X = pca.fit_transform(X)
+    X = pca.fit_transform(subsample_data)
     
     kf = KFold(pop_size,n_folds=5)
     cv_results = []
