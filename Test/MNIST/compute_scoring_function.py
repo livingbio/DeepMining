@@ -1,6 +1,6 @@
-n_computations = 50
+n_computations = 30
 pop_size = 5000
-dir_name = "v2_pop" + str(pop_size)
+dir_name = "v4_pop" + str(pop_size)
 
 ### import ####
 import os
@@ -23,9 +23,11 @@ print 'Arguments:',sys.argv
 
 
 ### Fix parameters : ####
-# pca_dim/10,degree,log10(gamma*1000)
+# blur_ksize,blur_sigma,pca_dim/10,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
-        [1,36],
+        [0,2],
+        [0,4],
+        [1,37],
         [1,5],
         [0,4]] )
 
@@ -40,33 +42,53 @@ if not os.path.exists("scoring_function/"+dir_name):
 else:
     print('Be carefull, directory already exists')
 
-### get data
-dataset = genfromtxt(open('train.csv','r'), delimiter=',', dtype='f8')[1:]    
-target = [x[0] for x in dataset]
-train = [x[1:] for x in dataset]
-X_data = np.asarray(train)
-Y_data = np.asarray(target)
+### data idx :
+# 0 : without denoising / blurring
+# 1 : GB_1_1_1
+# 2 : GB_1_1_2
+# 3 : GB_1_1_3
+# 4 : GB_3_3_1
+# 5 : GB_3_3_2
+# 6 : GB_3_3_3
+data_filenames = ["train","train_clean_GB_1_1_1","train_clean_GB_1_1_2","train_clean_GB_1_1_3", \
+                  "train_clean_GB_3_3_1","train_clean_GB_3_3_2","train_clean_GB_3_3_3"]
 
-print X_data.shape,Y_data.shape
+datasets = []
+d0 = genfromtxt(open('train.csv','r'), delimiter=',', dtype='f8')[1:]
+Y_data = np.asarray([x[0] for x in d0])[:20000]
+
+for fn in data_filenames:
+    all_pca_files = []
+    for pca_d in range(parameter_bounds[2][0],parameter_bounds[2][1]):
+        X_fn = genfromtxt("data/"+fn + "_pca_"+str(pca_d)+".csv",delimiter=',')
+        all_pca_files.append(X_fn)
+    print 'Loaded',fn
+    datasets.append( all_pca_files )
+
 
 def scoring_function(parameters):
+    blur_ksize,blur_sigma,pca_dim,_,_ = parameters
+
+    if(blur_sigma == 0):
+        dataset_idx = 0
+    else:
+        dataset_idx = 3*blur_ksize + blur_sigma
+
+    X_data = datasets[dataset_idx][pca_dim-1]
+
     subsample_idx = range(20000)
     random.shuffle(subsample_idx)
     subsample_idx = subsample_idx[:(pop_size)]
-    #print subsample_idx
+    
     subsample_data = X_data[subsample_idx,:]
     sub_Y = Y_data[subsample_idx]
 
     return scoring_function_cv(subsample_data,sub_Y,parameters)
 
-def scoring_function_cv(subsample_data,Y,parameters):
-    pca_dim,d,g = parameters
+def scoring_function_cv(X,Y,parameters):
+    _,_,_,d,g = parameters
     gamma = (10. ** g )/ 1000.
-    pca_dim = 10*pca_dim
 
-    pca = PCA(n_components = pca_dim)
-    X = pca.fit_transform(subsample_data)
-    
     kf = KFold(pop_size,n_folds=5)
     cv_results = []
     for train_idx,test_idx in kf:
@@ -86,7 +108,6 @@ def scoring_function_cv(subsample_data,Y,parameters):
     return cv_results
 
 
-
 print 'Start for run',n_run
 print 'Go for',n_computations,'computations \n'
 
@@ -100,8 +121,6 @@ all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring
 
 f =open(("scoring_function/"+dir_name+"/output_"+str(n_run)+".csv"),'w')
 for line in all_outputs[0]:
-    #for item in line:
     print>>f,line
-    #print>>f,'\n'
 
 np.savetxt(("scoring_function/"+dir_name+"/param_"+str(n_run)+".csv"),all_parameters[0], delimiter=",")
