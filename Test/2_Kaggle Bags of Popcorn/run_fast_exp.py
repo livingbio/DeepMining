@@ -1,15 +1,13 @@
-first_exp = 5001
-last_exp = 5006
-
+# 12300
 import numpy as np
 
-GCPconsiderAllObs1= False
+GCPconsiderAllObs1= True
 GCPconsiderAllObs2= False
 model = 'GCPR'
 nb_parameter_sampling= 500
 nb_random_steps= 20
-cluster_evol = 'constant'
-acquisition_function = 'MaxUpperBound'
+cluster_evol = 'variable'
+acquisition_function = 'EI'
 corr_kernel = 'squared_exponential' #'exponential_periodic'
 
 pop_size = 5000
@@ -45,7 +43,9 @@ import sys
 sys.path.append("../../")
 from smart_sampling import smartSampling
 
-
+first_exp = int(sys.argv[1])
+last_exp = first_exp + 1
+print first_exp,last_exp
 
 ####### Prepare FastScoring
 
