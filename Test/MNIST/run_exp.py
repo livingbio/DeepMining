@@ -1,8 +1,11 @@
 import numpy as np
 import sys
-first_exp, last_exp = sys.argv[1], sys.argv[2]
-print 'Arguments:',sys.argv
+nb_exp = 5
+first_exp = int(sys.argv[1])
 
+print 'Arguments:',sys.argv
+last_exp = first_exp + nb_exp
+print 'Run exp',first_exp,'to',last_exp
 
 GCPconsiderAllObs1= False
 GCPconsiderAllObs2= False
@@ -10,7 +13,7 @@ model = 'GCPR'
 nb_parameter_sampling= 200
 
 nb_random_steps= 5
-nb_GCP_steps = 50
+nb_GCP_steps = 5
 
 cluster_evol = 'constant'
 acquisition_function = 'MaxUpperBound'
@@ -23,9 +26,11 @@ o_fnames = [(exp_dir+"_output")]
 
 p_fnames = [(exp_dir+"_param")]
 
-# pca_dim/50,degree,log10(gamma*1000)
+# blur_ksize,blur_sigma,pca_dim/10,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
-        [5,14],
+        [0,2],
+        [1,4],
+        [1,37],
         [1,5],
         [0,4]] )
 
