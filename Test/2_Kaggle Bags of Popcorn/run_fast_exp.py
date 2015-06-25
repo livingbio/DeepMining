@@ -1,16 +1,23 @@
-first_exp = 5001
-last_exp = 5006
-
+#36001
 import numpy as np
+import sys
+nb_exp = 5
+first_exp = int(sys.argv[1])
 
-GCPconsiderAllObs1= False
+print 'Arguments:',sys.argv
+last_exp = first_exp + nb_exp
+print 'Run exp',first_exp,'to',last_exp
+
+
+GCPconsiderAllObs1= True
 GCPconsiderAllObs2= False
+noise_restitution = 'rgni'
 model = 'GCPR'
 nb_parameter_sampling= 500
 nb_random_steps= 20
 cluster_evol = 'constant'
 acquisition_function = 'MaxUpperBound'
-corr_kernel = 'squared_exponential' #'exponential_periodic'
+corr_kernel = #'exponential_periodic' #'squared_exponential' 
 
 pop_size = 5000
 exp_dir = "all_pop5000"
@@ -93,6 +100,7 @@ for n_exp in range(first_exp,last_exp):
                       corr_kernel = corr_kernel ,
                       GCPconsiderAllObs1=GCPconsiderAllObs1,
                       GCPconsiderAllObs2=GCPconsiderAllObs2,
+                      noise_restitution=noise_restitution,
                       model = 'GCPR', nb_parameter_sampling=nb_parameter_sampling,
                       nb_random_steps=nb_random_steps, n_clusters=1,cluster_evol = cluster_evol,
                       verbose=True,
