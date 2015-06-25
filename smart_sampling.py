@@ -25,6 +25,7 @@ def smartSampling(nb_iter,
 				   cluster_evol = 'constant',
    				   GCPconsiderAllObs1=True,
 				   GCPconsiderAllObs2=True,
+				   noise_restitution=None,
 				   isInt=True,
 				   returnAllParameters=True,
 				   verbose=False):
@@ -85,10 +86,10 @@ def smartSampling(nb_iter,
 	#---------------------------- Init ----------------------------#
 	n_parameters = parameter_bounds.shape[0]
 	if(cluster_evol != 'constant'):
-		GCP_args = [corr_kernel, 1,GCPconsiderAllObs1,GCPconsiderAllObs2]
+		GCP_args = [corr_kernel, 1,GCPconsiderAllObs1,GCPconsiderAllObs2,noise_restitution]
 	else:
-		GCP_args = [corr_kernel, n_clusters,GCPconsiderAllObs1,GCPconsiderAllObs2]
-	GCP_args_with_clusers = [corr_kernel, n_clusters,GCPconsiderAllObs1,GCPconsiderAllObs2]
+		GCP_args = [corr_kernel, n_clusters,GCPconsiderAllObs1,GCPconsiderAllObs2,noise_restitution]
+	GCP_args_with_clusers = [corr_kernel, n_clusters,GCPconsiderAllObs1,GCPconsiderAllObs2,noise_restitution]
 			
 	if(verbose):
 		print 'parameter bounds :',parameter_bounds
