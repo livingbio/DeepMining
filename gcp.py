@@ -199,7 +199,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
 				 considerAllObs1=True,
-				 considerAllObs2=True,
+				 considerAllObs2=False,
+				 noise_restitution=None,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
@@ -235,7 +236,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.thetaU = np.asarray([10.])
 		else:
 			self.corr = exponential_periodic
-		
+		self.noise_restitution = noise_restitution
+		if(self.noise_restitution == 'rgni' and self.considerAllObs2):
+			self.considerAllObs2 = False
+
 	def mapping(self,x,t,normalize=False):
 		if(normalize):
 			t = (t-self.raw_y_mean) / self.raw_y_std
@@ -406,6 +410,12 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			y_std = 1.
 		y = (y - y_mean) / y_std
 
+		if(self.obs_noise is not None and self.noise_restitution == 'rgni' ):
+			rgni_noise = y.ravel() * self.obs_noise / self.raw_y.ravel()
+			#print(np.mean(rgni_noise))
+			#print (rgni_noise.shape,y.shape,self.obs_noise.shape,self.raw_y.shape)
+			self.nugget = 10. * self.nugget * rgni_noise ** 2.
+
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
 		#if (np.min(np.sum(D, axis=1)) == 0.):
@@ -436,7 +446,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.y_mean, self.y_std = y_mean, y_std
 			
 			
-	def fit(self, X, y,detailed_y_obs=None):
+	def fit(self, X, y,detailed_y_obs=None,obs_noise=None):
 		"""
 		The Gaussian Copula Process model fitting method.
 
@@ -504,6 +514,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			raw_y_std = np.std(y, axis=0)
 			raw_y_std[raw_y_std == 0.] = 1.
 			y = (y - raw_y_mean) / raw_y_std
+			
+			if(obs_noise is not None):
+				obs_noise = obs_noise / raw_y_std
+
 			if(detailed_y_obs is not None):
 				detailed_raw_y = (detailed_raw_y - raw_y_mean) / raw_y_std
 				detailed_X = (detailed_X - X_mean) / X_std
@@ -575,7 +589,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if (self.try_optimize or (self.density_functions is None)):
 				self.init_mappings()
 
-
+		self.obs_noise = obs_noise
 		self.update_copula_params()
 		
 		if self.try_optimize:

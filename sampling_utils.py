@@ -21,7 +21,7 @@ def print_utils_parameters():
 def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
 	
 	if(model == 0):
-		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 1):
 		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
@@ -35,11 +35,12 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 	return best_candidate
 
 	
-def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
 	GCPconsiderAllObs1 = args[2]
 	GCPconsiderAllObs2 = args[3]
+	noise_restitution = args[4]
 
 	mean_gcp = GaussianCopulaProcess(nugget = nugget,
 								corr=corr_kernel,
@@ -47,8 +48,9 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, data_size_bounds, args, rand_
 								n_clusters=n_clusters,
 							 	considerAllObs1=GCPconsiderAllObs1,
 				 				considerAllObs2=GCPconsiderAllObs2,
+				 				noise_restitution=noise_restitution,
 								try_optimize=True)
-	mean_gcp.fit(X,mean_Y,raw_Y)
+	mean_gcp.fit(X,mean_Y,raw_Y,obs_noise=std_Y)
 
 	if verbose:
 		print ('GCP theta :'+str(mean_gcp.theta))
