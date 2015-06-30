@@ -18,6 +18,7 @@ from sklearn.cluster import KMeans
 from scipy.spatial import distance
 from GCP_utils import *
 from sklearn_utils import *
+from scipy import integrate
 
 MACHINE_EPSILON = np.finfo(np.double).eps
 
@@ -351,6 +352,20 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		return (v/self.raw_y_std)	
 
 
+	def integrate_prediction(self,mu,sigma,x,lb,ub):
+		def f_to_integrate(u):
+			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
+			temp = temp * (u * self.mapping_derivate(x,u,normalize=True) )
+			return temp
+		return(integrate.quad(f_to_integrate,lb,ub,epsrel =0.000000001)[0])
+
+	def predicted_RV(self,mu,sigma,x):
+		def f_to_integrate(u):
+			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
+			temp = temp * (u * self.mapping_derivate(x,u,normalize=True) )
+			return temp
+		return f_to_integrate
+
 	def init_mappings(self):
 		# We assume y is one-dimensional
 	
@@ -525,7 +540,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			X_mean = np.zeros(1)
 			X_std = np.ones(1)
 		
-		
+		self.raw_y_min = np.min(y)		
+		self.raw_y_max = np.max(y)
+
 		# Set attributes
 
 		if(detailed_y_obs is not None):
@@ -621,7 +638,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		return self
 
-	def predict(self, X, eval_MSE=False, transformY=True,eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
+	def predict(self, X, eval_MSE=False, transformY=True, returnRV=False, integratedPrediction= True, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
 		"""
 		This function evaluates the Gaussian Process model at x.
 
@@ -746,26 +763,37 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 			if self.y_ndim_ == 1:
 				MSE = MSE.ravel()
-				
-				if(eval_confidence_bounds):
-					if not(transformY):
-						print('Warning, transformy set to False but trying to evaluate conf bounds')
-					sigma = np.sqrt(MSE)
-					warped_y_with_boundL = warped_y - 1.9600 * sigma
-					warped_y_with_boundU = warped_y + upperBoundCoef * sigma
-					pred_with_boundL = self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] ) +self.raw_y_mean
-					pred_with_boundU =  self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] ) +self.raw_y_mean
-					return y,MSE,pred_with_boundL,pred_with_boundU
-						
+				sigma = np.sqrt(MSE)
+				if(returnRV):
+					return [ self.predicted_RV([warped_y[i]],sigma[i],X[i]) for i in range(size)]
 				else:
-					#if(self.n_clusters > 1):
-					#	center = np.mean(self.centroids)
-					#else:
-					#	center = 0.
-					#sigma = np.sqrt(MSE)
-					#coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-					#coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-					return y, MSE #, coefL, coefU
+					if(eval_confidence_bounds):
+						if not(transformY):
+							print('Warning, transformy set to False but trying to evaluate conf bounds')
+						warped_y_with_boundL = warped_y - upperBoundCoef * sigma
+						warped_y_with_boundU = warped_y + upperBoundCoef * sigma
+						pred_with_boundL = self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] ) +self.raw_y_mean
+						pred_with_boundU =  self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] ) +self.raw_y_mean
+						
+						if(integratedPrediction):
+							lb = self.raw_y_min - 3.*(self.raw_y_max-self.raw_y_min)
+							ub = self.raw_y_max + 3.*(self.raw_y_max-self.raw_y_min)
+							print(lb,ub)
+							integrated_real_y = [ self.integrate_prediction([warped_y[i]],sigma[i],X[i],lb,ub) for i in range(size)]
+							#integrated_real_y = self.raw_y_std * np.asarray(integrated_real_y) +self.raw_y_mean
+							integrated_real_y =  np.asarray(integrated_real_y)
+
+						return integrated_real_y,MSE,pred_with_boundL,pred_with_boundU
+						
+					else:
+						#if(self.n_clusters > 1):
+						#	center = np.mean(self.centroids)
+						#else:
+						#	center = 0.
+						#sigma = np.sqrt(MSE)
+						#coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
+						#coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
+						return integrated_real_y, MSE #, coefL, coefU
 			
 			else:
 				return y, MSE
