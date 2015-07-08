@@ -411,10 +411,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		y = (y - y_mean) / y_std
 
 		if(self.obs_noise is not None and self.noise_restitution == 'rgni' ):
-			rgni_noise = y.ravel() * self.obs_noise / self.raw_y.ravel()
+			# rgni_noise = y.ravel() * self.obs_noise / self.raw_y.ravel()
+			rgni_noise = self.obs_noise
 			#print(np.mean(rgni_noise))
 			#print (rgni_noise.shape,y.shape,self.obs_noise.shape,self.raw_y.shape)
-			self.nugget = 10. * self.nugget * rgni_noise ** 2.
+			self.nugget = self.nugget *( ( 10. * rgni_noise ) ** 2. )
 
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
