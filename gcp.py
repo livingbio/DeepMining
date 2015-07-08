@@ -794,7 +794,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 						#sigma = np.sqrt(MSE)
 						#coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
 						#coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-						return integrated_real_y, MSE #, coefL, coefU
+						return y, MSE #, coefL, coefU
 			
 			else:
 				return y, MSE
