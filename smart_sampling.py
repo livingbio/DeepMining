@@ -176,10 +176,10 @@ def smartSampling(nb_iter,
 		if(i==20 and cluster_evol=='step'):
 			GCP_args = GCP_args_with_clusters
 
-		if(i/10 > (i_mod_10+1) and cluster_evol=='variable'):
+		if(i/10 > (i_mod_10+2) and cluster_evol=='variable'):
 			GCP_args[0] = GCP_args[0]
 			GCP_args[1] = min(GCP_args[1]+1,n_clusters_max)
-			i_mod_10 += 2
+			i_mod_10 += 3
 
 		if(verbose):
 			print('Step '+str(i))
