@@ -7,17 +7,19 @@ print 'Arguments:',sys.argv
 last_exp = first_exp + nb_exp
 print 'Run exp',first_exp,'to',last_exp
 
+dir_prefix = ''
+
 GCPconsiderAllObs1= False
 GCPconsiderAllObs2= False
-model = 'GCPR'
-nb_parameter_sampling= 200
+model = 'GCP'
+nb_parameter_sampling= 100
+noise_restitution = None
+nb_random_steps= 10
+nb_GCP_steps = 485
 
-nb_random_steps= 5
-nb_GCP_steps = 5
-
-cluster_evol = 'constant'
+cluster_evol = 'variable'
 acquisition_function = 'MaxUpperBound'
-corr_kernel = 'exponential_periodic' # 'squared_exponential'
+corr_kernel = 'exponential_periodic' #'squared_exponential' # 
 
 pop_size = 5000
 exp_dir = "pop5000"
@@ -29,8 +31,8 @@ p_fnames = [(exp_dir+"_param")]
 # blur_ksize,blur_sigma,pca_dim/10,degree,log10(gamma*1000)
 parameter_bounds = np.asarray( [
         [0,2],
-        [1,4],
-        [1,37],
+        [0,5],
+        [5,31],
         [1,5],
         [0,4]] )
 
@@ -54,7 +56,7 @@ from smart_sampling import smartSampling
 output = []
 for fname in o_fnames:
     print fname
-    f =open(("scoring_function/"+fname+".csv"),'r')
+    f =open((dir_prefix + "scoring_function/"+fname+".csv"),'r')
     for l in f:
         l = l[1:-3]
         string_l = l.split(',')
@@ -63,7 +65,7 @@ for fname in o_fnames:
     print len(output)
 
 
-params = np.genfromtxt(("scoring_function/"+p_fnames[0]+".csv"),delimiter=',')
+params = np.genfromtxt((dir_prefix + "scoring_function/"+p_fnames[0]+".csv"),delimiter=',')
 print params.shape
 
 
@@ -85,8 +87,8 @@ def get_cv_res(p):
 for n_exp in range(first_exp,last_exp):
     print ' ****   Run exp',n_exp,'  ****'
     ### set directory
-    if not os.path.exists("exp_results/"+exp_dir+"/exp"+str(n_exp)):
-        os.mkdir("exp_results/"+exp_dir+"/exp"+str(n_exp))
+    if not os.path.exists(dir_prefix+ "exp_results/"+exp_dir+"/exp"+str(n_exp)):
+        os.mkdir(dir_prefix+ "exp_results/"+exp_dir+"/exp"+str(n_exp))
     else:
         print('Be carefull, directory already exists')
 
@@ -95,18 +97,19 @@ for n_exp in range(first_exp,last_exp):
                       corr_kernel = corr_kernel ,
                       GCPconsiderAllObs1=GCPconsiderAllObs1,
                       GCPconsiderAllObs2=GCPconsiderAllObs2,
-                      model = 'GCPR', nb_parameter_sampling=nb_parameter_sampling,
+              noise_restitution = noise_restitution,
+                      model = model, nb_parameter_sampling=nb_parameter_sampling,
                       nb_random_steps=nb_random_steps, n_clusters=1,cluster_evol = cluster_evol,
                       verbose=True,
                       acquisition_function = acquisition_function)
 
     ## save exp
     for i in range(len(all_raw_outputs)):
-        f =open(("exp_results/"+exp_dir+"/exp"+str(n_exp)+"/output_"+str(i)+".csv"),'w')
+        f =open((dir_prefix+ "exp_results/"+exp_dir+"/exp"+str(n_exp)+"/output_"+str(i)+".csv"),'w')
         for line in all_raw_outputs[i]:
             print>>f,line
         f.close()
-        np.savetxt(("exp_results/"+exp_dir+"/exp"+str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
-        np.savetxt(("exp_results/"+exp_dir+"/exp"+str(n_exp)+"/param_path_"+str(i)+".csv"),all_param_path[i], delimiter=",")
+        np.savetxt((dir_prefix+ "exp_results/"+exp_dir+"/exp"+str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
+        np.savetxt((dir_prefix+ "exp_results/"+exp_dir+"/exp"+str(n_exp)+"/param_path_"+str(i)+".csv"),all_param_path[i], delimiter=",")
 
     print ' ****   End exp',n_exp,'  ****\n'
