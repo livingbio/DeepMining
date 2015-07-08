@@ -639,7 +639,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		return self
 
-	def predict(self, X, eval_MSE=False, transformY=True, returnRV=False, integratedPrediction= True, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
+	def predict(self, X, eval_MSE=False, transformY=True, returnRV=False, integratedPrediction= False, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
 		"""
 		This function evaluates the Gaussian Process model at x.
 
@@ -784,7 +784,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 							#integrated_real_y = self.raw_y_std * np.asarray(integrated_real_y) +self.raw_y_mean
 							integrated_real_y =  np.asarray(integrated_real_y)
 
-						return integrated_real_y,MSE,pred_with_boundL,pred_with_boundU
+							return integrated_real_y,MSE,pred_with_boundL,pred_with_boundU
+
+						else:
+							return y,MSE,pred_with_boundL,pred_with_boundU
+
 						
 					else:
 						#if(self.n_clusters > 1):
