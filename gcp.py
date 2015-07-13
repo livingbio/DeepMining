@@ -194,7 +194,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 random_start=10, 
 				 normalize=True,
 				 reNormalizeY = False,
-				 # x_wrapping='none',
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
 				 considerAllObs1=False,
@@ -242,40 +241,28 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if(self.n_clusters > 1):
 				coefs = np.ones(self.n_clusters)
 				val = np.zeros(self.n_clusters)
-				store_temp = []
-				has_null_temp = False
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
 					coefs[w] =  np.exp(- np.sum( (self.coef_var_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
-					store_temp.append(temp)
 					if(temp == 0):
 						temp = 1e-10
-						has_null_temp = True
-					val[w] = ( norm.ppf( temp) ) 
+					val[w] = ( norm.ppf(temp) ) 
 				
 				s = np.sum(coefs)
 				if(s != 0):
 					val = val * coefs
 				else:
-					s = 4.
+					s = self.n_clusters
 				val = val / s
 				v = np.sum(val)
 				
-				if(math.isnan(v)):
-					print('Warning v == nan')
-					print(val,coefs,x)
-				if(has_null_temp and self.verboseMapping):
-					print(coefs/s,store_temp,self.low_bound,t)
-				# print(val,store_temp,coefs)
 			else:
 				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
 				temp =  min(0.999999998,temp )
 				v = norm.ppf(temp)
-				#if(temp < 0.01):
-				#	print(temp,t)
 		else:  
 	        	v = 6.3
 			
@@ -301,8 +288,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if(self.n_clusters > 1):
 				coefs = np.ones(self.n_clusters)
 				val = np.zeros(self.n_clusters)
-				store_temp = []
-				has_null_temp = False
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
@@ -321,15 +306,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				if(s != 0):
 					val = val * coefs
 				else:
-					s = 4.
+					s = self.n_clusters
 				val = val / s
 				v = np.sum(val)
 
-				if(math.isnan(v)):
-					print('Warning v == nan')
-					print(val,coefs,x)
-				if(has_null_temp and self.verboseMapping):
-					print(coefs/s,store_temp,self.low_bound,t)
 			else:
 				temp =  self.density_functions[0].integrate_box_1d(self.low_bound, t)
 				temp = min(0.999999998,temp)
@@ -419,11 +399,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		y = (y - y_mean) / y_std
 
 		if(self.obs_noise is not None and self.noise_restitution == 'rgni' ):
-			# rgni_noise = y.ravel() * self.obs_noise / self.raw_y.ravel()
-			rgni_noise = self.obs_noise
-			#print(np.mean(rgni_noise))
-			#print (rgni_noise.shape,y.shape,self.obs_noise.shape,self.raw_y.shape)
-			self.nugget = self.nugget *( ( 10. * rgni_noise ) ** 2. )
+			self.nugget = self.nugget *( ( 10. * self.obs_noise ) ** 2. )
 
 		# Calculate matrix of distances D between samples
 		D, ij = l1_cross_distances(self.X)
@@ -555,9 +531,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.low_bound = np.min([-500., 5. * np.min(y)])
 			self.X_mean, self.X_std = X_mean, X_std
 
-			#if(self.x_wrapping != 'none'):
-			#	X = GCP_Xwrapping(X,self.x_wrapping)
-			
 			# initialize mapping only if needed, i.e. it hasn't be done 
 			# yet of if we want to optimize the GCP hyperparameters
 			if (self.try_optimize or (self.density_functions is None)):
@@ -572,9 +545,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.low_bound = np.min([-500., 5. * np.min(y)])
 			self.X_mean, self.X_std = X_mean, X_std
 
-			#if(self.x_wrapping != 'none'):
-			#	X = GCP_Xwrapping(X,self.x_wrapping)
-			
 			# initialize mapping only if needed, i.e. it hasn't be done 
 			# yet of if we want to optimize the GCP hyperparameters
 			if (self.try_optimize or (self.density_functions is None)):
@@ -592,9 +562,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.low_bound = np.min([-500., 5. * np.min(y)])
 			self.X_mean, self.X_std = X_mean, X_std
 
-			#if(self.x_wrapping != 'none'):
-			#	X = GCP_Xwrapping(X,self.x_wrapping)
-			
 			# initialize mapping only if needed, i.e. it hasn't be done 
 			# yet of if we want to optimize the GCP hyperparameters
 			if (self.try_optimize or (self.density_functions is None)):
@@ -687,9 +654,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		# Normalize input
 		if self.normalize:
 			X = (X - self.X_mean) / self.X_std
-
-		#if(self.x_wrapping != 'none'):
-		#	X = GCP_Xwrapping(X,self.x_wrapping)
 			
 		# Initialize output
 		y = np.zeros(n_eval)
@@ -784,14 +748,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 						
 					else:
-						#if(self.n_clusters > 1):
-						#	center = np.mean(self.centroids)
-						#else:
-						#	center = 0.
-						#sigma = np.sqrt(MSE)
-						#coefU = (self.mapping_inv(center,self.y_mean + 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-						#coefL = -(self.mapping_inv(center,self.y_mean - 1.96*np.mean(sigma))[0] - self.mapping_inv(center,self.y_mean)[0])/1.96
-						return y, MSE #, coefL, coefU
+						return y, MSE
 			
 			else:
 				return y, MSE
