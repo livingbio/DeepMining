@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
@@ -199,16 +197,12 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 # x_wrapping='none',
 				 n_clusters = 1,
 				 coef_var_mapping = 0.4,
-				 considerAllObs1=True,
+				 considerAllObs1=False,
 				 considerAllObs2=False,
 				 noise_restitution=None,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
-# 				 theta=np.asarray([40,30,20,.05,1.,1.,2.,.1,1.]),
-#				 thetaL=np.asarray([10.,1.,1.,.01,1.,0.1,0.1,0.01,0.01]),
-#				 thetaU=np.asarray([90,50,20,10.,5.,10.,10.,1.,100.]), 
-
 		self.regr = regr
 		self.beta0 = None
 		self.storage_mode = 'full'
@@ -225,7 +219,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.try_optimize = try_optimize
 		self.n_clusters = n_clusters
 		self.density_functions = None
-		# self.x_wrapping = x_wrapping
 		self.verboseMapping = False
 		self.coef_var_mapping = coef_var_mapping
 		self.considerAllObs1 = considerAllObs1
