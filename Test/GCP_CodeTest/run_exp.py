@@ -1,11 +1,8 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-from scipy import stats
-import os
 
 sys.path.append("../../")
-from smart_sampling import smartSampling
 from gcp import GaussianCopulaProcess
 
 ### Set parameters ###
