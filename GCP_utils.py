@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
 import numpy as np
 from sklearn_utils import *
-
-def GCP_Xwrapping(X,x_wrapping):
-	## do domething
-	return X
 
 
 def theta_toOneDim(theta):
@@ -17,7 +11,7 @@ def theta_toOneDim(theta):
 	if(theta.shape[0] > 1):
 
 		# we don't want t0,t1,t2 to varry with the axis
-		theta_1dim = np.mean( theta[:3,:],axis=1) #take the mean in case there has been a error somewhere
+		theta_1dim = np.mean( theta[:3,:],axis=1) #take the mean in case there has been an error somewhere
 		theta_1dim = np.concatenate((theta_1dim, (theta[3:,:]).reshape(1,theta.size-3*theta.shape[1])[0] ))
 		return theta_1dim
 	else:
@@ -142,7 +136,7 @@ def exponential_periodic(theta,d):
 	t6 = theta[6,:]
 	t7 = theta[7,:]
 	t8 = theta[8,:]
-	#print(theta)
+
 	good_cond =  (t0 > 0) and (t1 > 0) and (t2 > 0)
 	c = (t0 + t1 + t2) * 5.
 	if(good_cond):
@@ -161,8 +155,7 @@ def exponential_periodic(theta,d):
 		if( np.sum( ((c1+c2+c3)/c) >= 1. ) >= 1):
 			print('Corr Error 1')
 			return np.zeros((d.shape[0]))
-		#print ( np.min(((c1+c2+c3)/c)))
-		#print (np.max(((c1+c2+c3)/c)))
+			
 		return ((c1+c2+c3)/c)
 	
 	else:

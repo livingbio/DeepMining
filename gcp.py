@@ -36,37 +36,19 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 			'constant', 'linear', 'quadratic'
 
-	mapping : the mapping function such that mapping(Yt) is a gaussian process, where Yt
-		is the output
-		Default is log.
-		
-	mapping_inv : the inverse mapping, such that mapping_inv[mapping(.)] == mapping[mapping_inv(.)] == id
-		Default is exp.
-		
 	corr : string or callable, optional
 		A stationary autocorrelation function returning the autocorrelation
 		between two points x and x'.
 		Default assumes a squared-exponential autocorrelation model.
 		Built-in correlation models are::
 
-			'absolute_exponential', 'squared_exponential',
-			'generalized_exponential', 'cubic', 'linear'
+			'squared_exponential', 'exponential_periodic'
 
 	beta0 : double array_like, optional
 		The regression weight vector to perform Ordinary Kriging (OK).
 		Default assumes Universal Kriging (UK) so that the vector beta of
 		regression weights is estimated using the maximum likelihood
 		principle.
-
-	storage_mode : string, optional
-		A string specifying whether the Cholesky decomposition of the
-		correlation matrix should be stored in the class (storage_mode =
-		'full') or not (storage_mode = 'light').
-		Default assumes storage_mode = 'full', so that the
-		Cholesky decomposition of the correlation matrix is stored.
-		This might be a useful parameter when one is not interested in the
-		MSE and only plan to estimate the BLUP, for which the correlation
-		matrix is not required.
 
 	verbose : boolean, optional
 		A boolean specifying the verbose level.
@@ -112,17 +94,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		Default assumes a nugget close to machine precision for the sake of
 		robustness (nugget = 10. * MACHINE_EPSILON).
 
-	optimizer : string, optional
-		A string specifying the optimization algorithm to be used.
-		Default uses 'fmin_cobyla' algorithm from scipy.optimize.
-		Available optimizers are::
-
-			'fmin_cobyla', 'Welch'
-
-		'Welch' optimizer is dued to Welch et al., see reference [WBSWM1992]_.
-		It consists in iterating over several one-dimensional optimizations
-		instead of running one single multi-dimensional optimization.
-
 	random_start : int, optional
 		The number of times the Maximum Likelihood Estimation should be
 		performed from a random starting point.
@@ -145,7 +116,14 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 	`reduced_likelihood_function_value_`: array
 		The optimal reduced likelihood function value.
-
+		
+	mapping : the mapping function such that mapping(Yt) is a gaussian process, where Yt
+		is the output
+		Default is log.
+		
+	mapping_inv : the inverse mapping, such that mapping_inv[mapping(.)] == mapping[mapping_inv(.)] == id
+		Default is exp.
+		
 	Examples
 	--------
 	>>> import numpy as np
@@ -204,7 +182,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
  
 		self.regr = regr
 		self.beta0 = None
-		self.storage_mode = 'full'
 		self.verbose = verbose
 		self.theta = theta
 		self.thetaL = thetaL
