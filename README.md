@@ -1,6 +1,6 @@
 ## Deep Mining : Copula-based Hyperparameter Optimization for Machine Learning Pipelines ##
 
-This repositery contains all the code implmenting the Gaussian Copula Process (GCP) and a hyperparameter optimization technique based on it.
+This repository contains all the code implmenting the Gaussian Copula Process (GCP) and a hyperparameter optimization technique based on it.
 All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 The GCP code is based on Scikit-learn's GP implementation.
 
