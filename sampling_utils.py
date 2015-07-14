@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
@@ -9,14 +7,10 @@ from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 from scipy import integrate
 
-nugget = 0.00001/100.
-GCP_upperBound_coef = 2.
+
+max_f_value = 1.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
-
-def print_utils_parameters():
-	print 'Nugget', nugget
-	print 'GCP upper bound coef :', GCP_upperBound_coef,'\n'
 
 def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
 	
@@ -24,7 +18,7 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 1):
-		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, rand_candidates,verbose,acquisition_function)
+		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function)
 		
 	elif(model == 2):
 		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0]-1)]
@@ -38,18 +32,20 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
-	GCPconsiderAllObs1 = args[2]
-	GCPconsiderAllObs2 = args[3]
-	noise_restitution = args[4]
+	GCP_mapWithNoise = args[2]
+	GCP_useAllNoisyY = args[3]
+	GCP_model_noise = args[4]
+	nugget = args[5]
+	GCP_upperBound_coef = args[6]
 
 	mean_gcp = GaussianCopulaProcess(nugget = nugget,
-								corr=corr_kernel,
-								random_start=5,
-								n_clusters=n_clusters,
-							 	considerAllObs1=GCPconsiderAllObs1,
-				 				considerAllObs2=GCPconsiderAllObs2,
-				 				noise_restitution=noise_restitution,
-								try_optimize=True)
+									corr = corr_kernel,
+									random_start = 5,
+									n_clusters = n_clusters,
+								 	mapWithNoise = GCP_mapWithNoise,
+					 				useAllNoisyY = GCP_useAllNoisyY,
+					 				model_noise = GCP_model_noise,
+									try_optimize = True)
 	mean_gcp.fit(X,mean_Y,raw_Y,obs_noise=std_Y)
 
 	if verbose:
@@ -76,13 +72,6 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 	
 		predictions,MSE,boundL,boundU = \
 				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
-
-		# If we'd like to model the std and use it as a pre-selector
-		#std_selected_candidates_idx = np.argsort(std_predictions)[:200]  # we'd like to have a low std
-		#min_std,max_std = std_boundU[std_selected_candidates_idx][0],std_boundU[std_selected_candidates_idx][199]
-		#best_candidate_idx = np.argmax(mean_boundU[std_selected_candidates_idx])
-		#best_candidate_idx = std_selected_candidates_idx[best_candidate_idx]
-
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -106,21 +95,12 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		ei = [ compute_ei((rand_candidates[i]-mean_gcp.X_mean)/mean_gcp.X_std,predictions[i],sigma[i],y_best, \
 						mean_gcp.mapping,mean_gcp.mapping_derivate) \
 				for i in range(rand_candidates.shape[0]) ]
-		#print(ei)
+
 		best_candidate_idx = np.argmax(ei)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], ei[best_candidate_idx]
 
-	elif(acquisition_function=='HighScoreHighConfidence'):
-	
-		predictions,MSE,boundL,boundU = mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True)
-		objective = predictions*(1+ 1./(2. + (boundU-predictions)) )  # a trade-off between a high score and a high confidence
-		best_candidate_idx = np.argmax(objective)
-		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
-			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx], objective[best_candidate_idx] 
-		
 	else:
 		print('Acquisition function not handled...')
 
@@ -128,7 +108,8 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		
 
 		
-def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GP(X, Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
+	nugget = args[5]
 
 	gp = GaussianProcess(theta0=1. ,
 						 thetaL = 0.001,
@@ -150,8 +131,6 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,
 	
 		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
 		upperBound = predictions + 1.96*np.sqrt(MSE)
-		#if((data_size_bounds is not None) and (data_size_bounds[0] < data_size_bounds[1])):
-		#	upperBound = upperBound - (rand_candidates[:,0] - data_size_bounds[0])/(data_size_bounds[1]-data_size_bounds[0])
 		best_candidate_idx = np.argmax(upperBound)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -166,16 +145,6 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], lowerBound[best_candidate_idx]
 	
-	elif(acquisition_function=='HighScoreHighConfidence'):
-	
-		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
-		upperBound = predictions + 1.96*np.sqrt(MSE)
-		objective = predictions*(1+ 1./(2. + (upperBound-predictions)) )  # a trade-off between a high score and a high confidence
-		best_candidate_idx = np.argmax(objective)
-		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
-			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx], objective[best_candidate_idx]
-			
 	else:
 		print('Acquisition function not handled...')
 
@@ -183,46 +152,50 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, rand_candidates,verbose,
 		
 
 		
-def sample_random_candidates(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt):
+def sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt):
 	n_parameters = isInt.shape[0]
 	candidates = []
 	if(data_size_bounds is not None):
 		# favor small data sizes
-		#data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.sqrt(np.random.rand(1)))*(data_size_bounds[1]-data_size_bounds[0]))
-		#								* np.ones(nb_parameter_sampling),
+		# data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.sqrt(np.random.rand(1)))*(data_size_bounds[1]-data_size_bounds[0]))
+		#								* np.ones(n_candidates),
 		#								dtype = np.int32 )
 		
 		# sample data size uniformly
 		data_size_samples = np.asarray( (data_size_bounds[0] + (np.random.rand(1))*(data_size_bounds[1]-data_size_bounds[0]))
-										* np.ones(nb_parameter_sampling),
+										* np.ones(n_candidates),
 										dtype = np.int32 )
 		candidates.append(data_size_samples)
+
 	for k in range(n_parameters):
 		if(isInt[k]):
-			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
 								dtype = np.int32)
 		else:
-			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] )
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] )
 		candidates.append(k_sample)
+
 	candidates = np.asarray(candidates)
 	candidates = candidates.T
 	
 	return compute_unique1(candidates)
 
-def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,data_size_bounds,isInt):
+def sample_random_candidates_for_init(n_candidates,parameter_bounds,data_size_bounds,isInt):
 	n_parameters = isInt.shape[0]
 	candidates = []
 	if(data_size_bounds is not None):
-		data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.random.rand(nb_parameter_sampling))*(data_size_bounds[1]-data_size_bounds[0])),
+		data_size_samples = np.asarray( (data_size_bounds[0] + (1-np.random.rand(n_candidates))*(data_size_bounds[1]-data_size_bounds[0])),
 										dtype = np.int32 )
 		candidates.append(data_size_samples)
+
 	for k in range(n_parameters):
 		if(isInt[k]):
-			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] ,
 								dtype = np.int32)
 		else:
-			k_sample  = np.asarray( np.random.rand(nb_parameter_sampling) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] )
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(parameter_bounds[k][1]-parameter_bounds[k][0]) + parameter_bounds[k][0] )
 		candidates.append(k_sample)
+	
 	candidates = np.asarray(candidates)
 	candidates = candidates.T
 	
@@ -231,7 +204,6 @@ def sample_random_candidates_for_init(nb_parameter_sampling,parameter_bounds,dat
 def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_output):
 	is_in,idx = is_in_ndarray(new_param,parameters)
 	if(is_in):
-		#print('Parameter already tested in',idx)
 		# parameters is already in our log
 		raw_outputs[idx] += new_output
 		# update mean and std for this parameter set
@@ -248,13 +220,13 @@ def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_o
 
 
 def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
-	if(f_best >= 1.):
-		print('Error in compute_ei : f_best > 1')
+	if(f_best > max_f_value):
+		print('Error in compute_ei : f_best > max_f_value ')
 	def f_to_integrate(u):
 		temp = u * Psi_prim(x,f_best+u,normalize=True) / sigma
 		temp = temp * np.exp( - 0.5 * ((m - Psi(x,f_best+u,normalize=True)[0])/ sigma )**2. )
 		return temp
-	return integrate.quad(f_to_integrate,0,2.-f_best)[0]
+	return integrate.quad(f_to_integrate,0,(2.*max_f_value)-f_best)[0]
 
 
 def compute_unique1(a):

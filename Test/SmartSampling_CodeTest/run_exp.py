@@ -13,10 +13,10 @@ n_clusters = 1
 cluster_evol ='constant'
 corr_kernel = 'squared_exponential'
 GCPconsiderAllObs= False
-noise_restitution = None
+model_noise = None
 sampling_model = 'GCP'
-nb_parameter_sampling= 100
-nb_random_steps= 10
+n_candidates= 100
+n_random_init= 10
 nb_GCP_steps = 10
 nb_iter_final = 0
 acquisition_function = 'MaxUpperBound'
@@ -26,25 +26,26 @@ def scoring_function(x):
     return [res]
 
 
-X,_,Y,_,_ = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,
+X,Y = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,
 											  isInt=True,
 							                  corr_kernel = corr_kernel,
 							                  acquisition_function = acquisition_function,
 							                  GCPconsiderAllObs1=GCPconsiderAllObs,
-							          		  noise_restitution = noise_restitution,
+							          		  model_noise = model_noise,
 							                  model = sampling_model, 
-							                  nb_parameter_sampling=nb_parameter_sampling,
-							                  nb_random_steps=nb_random_steps,
-							                  nb_iter_final=nb_iter_final,
-							                  n_clusters=1, cluster_evol = cluster_evol,
+							                  n_candidates=n_candidates,
+							                  n_random_init=n_random_init,
+							                  n_final_iter=nb_iter_final,
+							                  n_clusters=1, 
+							                  cluster_evol = cluster_evol,
 							                  verbose=True,
-							                  returnAllParameters = True)
+							                  detailed_res = False)
 
 X = np.asarray(X[0])
 Y = np.asarray(Y[0])
 
-X_init = X[:nb_random_steps]
-Y_init = Y[:nb_random_steps]
+X_init = X[:n_random_init]
+Y_init = Y[:n_random_init]
 
 # plot results
 abs = range(0,400)

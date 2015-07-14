@@ -173,10 +173,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				 normalize=True,
 				 reNormalizeY = False,
 				 n_clusters = 1,
-				 coef_var_mapping = 0.4,
-				 considerAllObs1=False,
-				 considerAllObs2=False,
-				 noise_restitution=None,
+				 coef_latent_mapping = 0.4,
+				 mapWithNoise=False,
+				 useAllNoisyY=False,
+				 model_noise=None,
 				 nugget=10. * MACHINE_EPSILON,
 				 random_state=None):
  
@@ -196,9 +196,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.n_clusters = n_clusters
 		self.density_functions = None
 		self.verboseMapping = False
-		self.coef_var_mapping = coef_var_mapping
-		self.considerAllObs1 = considerAllObs1
-		self.considerAllObs2 =considerAllObs2
+		self.coef_latent_mapping = coef_latent_mapping
+		self.mapWithNoise = mapWithNoise
+		self.useAllNoisyY =useAllNoisyY
 		if (corr == 'squared_exponential'):
 			self.corr = sq_exponential
 			self.theta = np.asarray([0.1])
@@ -206,9 +206,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.thetaU = np.asarray([10.])
 		else:
 			self.corr = exponential_periodic
-		self.noise_restitution = noise_restitution
-		if(self.noise_restitution == 'rgni' and self.considerAllObs2):
-			self.considerAllObs2 = False
+		self.model_noise = model_noise
+		if(self.model_noise == 'EGN' and self.useAllNoisyY):
+			self.useAllNoisyY = False
 
 	def mapping(self,x,t,normalize=False):
 		if(normalize):
@@ -221,7 +221,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
-					coefs[w] =  np.exp(- np.sum( (self.coef_var_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
+					coefs[w] =  np.exp(- np.sum( (self.coef_latent_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
 					if(temp == 0):
@@ -268,7 +268,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				for w in range(self.n_clusters):
 					## coefficients are :
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
-					coefs[w] =  np.exp(- np.sum( (self.coef_var_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
+					coefs[w] =  np.exp(- np.sum( (self.coef_latent_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					# computing Psi_i (t) 
 					temp =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					temp = min(0.999999998,temp)
@@ -335,10 +335,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			# Compute the density function for each sub-window
 			density_functions = []
 			clusters_std = []
-			if(self.detailed_raw_y is not None and self.considerAllObs1):
+			if(self.detailed_raw_y is not None and self.mapWithNoise):
 				detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
 			for w in range(self.n_clusters):
-				if(self.detailed_raw_y is not None and self.considerAllObs1):
+				if(self.detailed_raw_y is not None and self.mapWithNoise):
 					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w])[:,0])
 				else:
 					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
@@ -353,7 +353,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			print('---STD---')
 			print(clusters_std)	
 		else:
-			if(self.detailed_raw_y is not None and self.considerAllObs1):
+			if(self.detailed_raw_y is not None and self.mapWithNoise):
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
 			else:
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])
@@ -375,7 +375,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			y_std = 1.
 		y = (y - y_mean) / y_std
 
-		if(self.obs_noise is not None and self.noise_restitution == 'rgni' ):
+		if(self.obs_noise is not None and self.model_noise == 'EGN' ):
 			self.nugget = self.nugget *( ( 10. * self.obs_noise ) ** 2. )
 
 		# Calculate matrix of distances D between samples
@@ -469,7 +469,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			X_mean = np.mean(X, axis=0)
 			X_std = np.std(X, axis=0)
 			X_std[X_std == 0.] = 1.
-			# center and scale X if necessary
 			X = (X - X_mean) / X_std
 
 			raw_y_mean = np.mean(y, axis=0)
@@ -499,7 +498,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			self.detailed_raw_y = None			
 			self.detailed_X = None			
 		
-		if(self.detailed_raw_y is not None and self.considerAllObs1 and self.considerAllObs2 ):
+		if(self.detailed_raw_y is not None and self.mapWithNoise and self.useAllNoisyY ):
 			self.X = self.detailed_X
 			self.raw_y = self.detailed_raw_y
 			
@@ -513,7 +512,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			if (self.try_optimize or (self.density_functions is None)):
 				self.init_mappings()
 		
-		elif(self.detailed_raw_y is not None and self.considerAllObs2 ):
+		elif(self.detailed_raw_y is not None and self.useAllNoisyY ):
 			self.X = X
 			self.raw_y = y
 
@@ -715,7 +714,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 							ub = self.raw_y_max + 3.*(self.raw_y_max-self.raw_y_min)
 							print(lb,ub)
 							integrated_real_y = [ self.integrate_prediction([warped_y[i]],sigma[i],X[i],lb,ub) for i in range(size)]
-							#integrated_real_y = self.raw_y_std * np.asarray(integrated_real_y) +self.raw_y_mean
 							integrated_real_y =  np.asarray(integrated_real_y)
 
 							return integrated_real_y,MSE,pred_with_boundL,pred_with_boundU
