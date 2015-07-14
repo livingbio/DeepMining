@@ -17,11 +17,11 @@ The GCP code is based on Scikit-learn's GP implementation.
 ### Instructions ###
 One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSmapling** function, which iteratively ask to asses the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
 
-To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in SmartSampling_CodeTest.
+To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user jsut has to provide a *scoring_function* and a *parameter_bounds* array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the *scoring_function*.
 
 ### Examples ###
-This repository contains two tests GCP_CodeTest and SmartSampling_CodeTest that enable the user to quicly test the GCP and SmartSampling code.
+This repository contains two tests CodeTest_GCP and CodeTest_SmartSampling that enable the user to quicly test the GCP and SmartSampling code.
 
 It also contains two real examples based on the Sentiment Analysis problem for IMDB review (cf. [Kaggle's competition](https://www.kaggle.com/c/word2vec-nlp-tutorial)) and the Handwritten digits one from the MNIST database (cf. [Kaggle's competition](https://www.kaggle.com/c/digit-recognizer)).
 In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders *Test/ProblemName/scoring_function*. This way, the scrip run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.
