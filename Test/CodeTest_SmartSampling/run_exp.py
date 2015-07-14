@@ -15,9 +15,9 @@ corr_kernel = 'squared_exponential'
 mapWithNoise= False
 model_noise = None
 sampling_model = 'GCP'
-n_candidates= 100
+n_candidates= 300
 n_random_init= 10
-nb_GCP_steps = 5
+nb_GCP_steps = 6
 nb_iter_final = 0
 acquisition_function = 'MaxUpperBound'
 
@@ -47,13 +47,24 @@ Y = np.asarray(Y[0])
 X_init = X[:n_random_init]
 Y_init = Y[:n_random_init]
 
+n_smart_steps = X.shape[0] - n_random_init
+print n_smart_steps,'new tested points'
+
+n_rows = n_smart_steps/3
+if not(n_smart_steps% 3 == 0):
+	n_rows += 1
+
 # plot results
 abs = range(0,400)
 f_plot = [scoring_function(i) for i in abs]
 fig = plt.figure()
-plt.plot(abs,f_plot)
-plt.plot(X,Y,'ro',label='GCP query points')
-plt.plot(X_init,Y_init,'bo',label='Random initialization')
+
+for i in range(1,n_smart_steps+1):
+	ax = fig.add_subplot(n_rows,3,i)
+	ax.plot(abs,f_plot)
+	ax.plot(X[:(n_random_init+i)],Y[:(n_random_init+i)],'ro',label='GCP query points')
+	ax.plot(X_init,Y_init,'bo',label='Random initialization')
+
 plt.title('Smart sampling process')
 plt.legend()
 plt.show()
