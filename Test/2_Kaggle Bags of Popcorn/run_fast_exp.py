@@ -9,12 +9,13 @@ last_exp = first_exp + nb_exp
 print 'Run exp',first_exp,'to',last_exp
 
 
-GCPconsiderAllObs1= True
-GCPconsiderAllObs2= False
-noise_restitution = 'rgni'
-model = 'GCPR'
-nb_parameter_sampling= 500
-nb_random_steps= 20
+GCP_mapWithNoise= False
+GCP_useAllNoisyY= False
+model_noise = 'EGN'
+model = 'GCP'
+n_candidates= 500
+n_random_init= 20
+nb_GCP_steps = 90
 cluster_evol = 'constant'
 acquisition_function = 'MaxUpperBound'
 corr_kernel = #'exponential_periodic' #'squared_exponential' 
@@ -36,7 +37,6 @@ parameter_bounds = np.asarray( [
         [1,11],
         [1,4]] )
 
-nb_GCP_steps = 90
 
 
 from scipy.spatial.distance import euclidean
@@ -98,11 +98,11 @@ for n_exp in range(first_exp,last_exp):
     all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs, all_param_path = \
         smartSampling(nb_GCP_steps,parameter_bounds,get_cv_res,isInt=True,
                       corr_kernel = corr_kernel ,
-                      GCPconsiderAllObs1=GCPconsiderAllObs1,
-                      GCPconsiderAllObs2=GCPconsiderAllObs2,
-                      noise_restitution=noise_restitution,
-                      model = 'GCPR', nb_parameter_sampling=nb_parameter_sampling,
-                      nb_random_steps=nb_random_steps, n_clusters=1,cluster_evol = cluster_evol,
+                      GCP_mapWithNoise=GCP_mapWithNoise,
+                      GCP_useAllNoisyY=GCP_useAllNoisyY,
+                      model_noise = model_noise,
+                      model = model, n_candidates=n_candidates,
+                      n_random_init=n_random_init, n_clusters=1,cluster_evol = cluster_evol,
                       verbose=True,
                       acquisition_function = acquisition_function)
 

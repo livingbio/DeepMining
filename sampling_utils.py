@@ -59,19 +59,10 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
-	elif(acquisition_function=='MaxEstimatedUpperBound'):
-	
-		predictions,MSE,coefL,coefU = mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=False)
-		upperBound = predictions + 1.96*coefU*np.sqrt(MSE)
-		best_candidate_idx = np.argmax(upperBound)
-		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
-			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
-	
 	elif(acquisition_function=='MaxUpperBound'):
 	
 		predictions,MSE,boundL,boundU = \
-				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
+				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -80,7 +71,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 	elif(acquisition_function=='MaxLowerBound'):
 	
 		predictions,MSE,boundL,boundU = \
-				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,upperBoundCoef=GCP_upperBound_coef)
+				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundL)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
@@ -93,7 +84,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		y_best = np.max(mean_Y)
 		sigma = np.sqrt(MSE)
 		ei = [ compute_ei((rand_candidates[i]-mean_gcp.X_mean)/mean_gcp.X_std,predictions[i],sigma[i],y_best, \
-						mean_gcp.mapping,mean_gcp.mapping_derivate) \
+						mean_gcp.mapping,mean_gcp.mapping_derivative) \
 				for i in range(rand_candidates.shape[0]) ]
 
 		best_candidate_idx = np.argmax(ei)
@@ -127,7 +118,7 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, args, rand_candidates,ve
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
-	elif(acquisition_function=='MaxEstimatedUpperBound' or acquisition_function=='MaxUpperBound'):
+	elif(acquisition_function=='MaxUpperBound'):
 	
 		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
 		upperBound = predictions + 1.96*np.sqrt(MSE)

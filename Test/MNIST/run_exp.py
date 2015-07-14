@@ -9,12 +9,12 @@ print 'Run exp',first_exp,'to',last_exp
 
 dir_prefix = ''
 
-GCPconsiderAllObs1= False
-GCPconsiderAllObs2= False
+GCP_mapWithNoise= False
+GCP_useAllNoisyY= False
 model = 'GCP'
-nb_parameter_sampling= 100
-noise_restitution = None
-nb_random_steps= 10
+n_candidates= 100
+model_noise = None
+n_random_init= 10
 nb_GCP_steps = 485
 
 cluster_evol = 'variable'
@@ -95,11 +95,11 @@ for n_exp in range(first_exp,last_exp):
     all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs, all_param_path = \
         smartSampling(nb_GCP_steps,parameter_bounds,get_cv_res,isInt=True,
                       corr_kernel = corr_kernel ,
-                      GCPconsiderAllObs1=GCPconsiderAllObs1,
-                      GCPconsiderAllObs2=GCPconsiderAllObs2,
-              noise_restitution = noise_restitution,
-                      model = model, nb_parameter_sampling=nb_parameter_sampling,
-                      nb_random_steps=nb_random_steps, n_clusters=1,cluster_evol = cluster_evol,
+                      GCP_mapWithNoise=GCP_mapWithNoise,
+                      GCP_useAllNoisyY=GCP_useAllNoisyY,
+                      model_noise = model_noise,
+                      model = model, n_candidates=n_candidates,
+                      n_random_init=n_random_init, n_clusters=1,cluster_evol = cluster_evol,
                       verbose=True,
                       acquisition_function = acquisition_function)
 

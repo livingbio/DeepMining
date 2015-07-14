@@ -8,11 +8,11 @@ from gcp import GaussianCopulaProcess
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
-nugget = 1e-10
+nugget = 1.e-10
 n_clusters = 1
 cluster_evol ='constant'
 corr_kernel = 'squared_exponential'
-GCPconsiderAllObs= False
+mapWithNoise= False
 model_noise = None
 sampling_model = 'GCP'
 n_candidates= 100
@@ -30,7 +30,7 @@ X,Y = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,
 											  isInt=True,
 							                  corr_kernel = corr_kernel,
 							                  acquisition_function = acquisition_function,
-							                  GCPconsiderAllObs1=GCPconsiderAllObs,
+							                  GCP_mapWithNoise=mapWithNoise,
 							          		  model_noise = model_noise,
 							                  model = sampling_model, 
 							                  n_candidates=n_candidates,

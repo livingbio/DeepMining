@@ -32,7 +32,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		regression functional basis. The number of observations n_samples
 		should be greater than the size p of this basis.
 		Default assumes a simple constant regression trend.
-		Available built-in regression models are::
+		Available built-in regression models are:
 
 			'constant', 'linear', 'quadratic'
 
@@ -40,7 +40,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		A stationary autocorrelation function returning the autocorrelation
 		between two points x and x'.
 		Default assumes a squared-exponential autocorrelation model.
-		Built-in correlation models are::
+		Built-in correlation models are:
 
 			'squared_exponential', 'exponential_periodic'
 
@@ -54,11 +54,10 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		A boolean specifying the verbose level.
 		Default is verbose = False.
 
-	theta0 : double array_like, optional
+	theta : double array_like, optional
 		An array with shape (n_features, ) or (1, ).
 		The parameters in the autocorrelation model.
-		If thetaL and thetaU are also specified, theta0 is considered as
-		the starting point for the maximum likelihood estimation of the
+		theta is the starting point for the maximum likelihood estimation of the
 		best set of parameters.
 		Default assumes isotropic autocorrelation model with theta0 = 1e-1.
 
@@ -66,15 +65,15 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		An array with shape matching theta0's.
 		Lower bound on the autocorrelation parameters for maximum
 		likelihood estimation.
-		Default is None, so that it skips maximum likelihood estimation and
-		it uses theta0.
 
 	thetaU : double array_like, optional
 		An array with shape matching theta0's.
 		Upper bound on the autocorrelation parameters for maximum
 		likelihood estimation.
-		Default is None, so that it skips maximum likelihood estimation and
-		it uses theta0.
+
+	try_optimize : boolean, optional
+		If True, perform maximum likelihood estimation to set the value of theta.
+		Default is True.
 
 	normalize : boolean, optional
 		Input X and observations y are centered and reduced wrt
@@ -82,6 +81,48 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		observations provided.
 		Default is normalize = True so that data is normalized to ease
 		maximum likelihood estimation.
+
+	reNormalizeY : boolean, optional
+		Normalize the warped Y values, ie. the values mapping(Yt), before
+		fitting a GP.
+		Default is False.
+
+	n_clusters : int, optional
+		If n_clusters > 1, a latent model is built by clustering the data with
+		K-Means, into n_clusters clusters.
+		Default is 1.
+
+	coef_latent_mapping : float, optional
+		If n_clusters > 1, this coefficient is used to interpolate the mapping
+		function on the whole space from the mapping functions learned on each
+		cluster. This acts as a smoothing parameter : if coef_latent_mapping == 0.,
+		each cluster contributes equally, and the greater it is the fewer
+		mapping(x,y) takes into account the clusters in which x is not. 
+		Default is 0.5.
+
+	mapWithNoise : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the noisy observations are used to compute Y's distribution
+		and learn the mapping function.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	useAllNoisyY : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the warped noisy observations are used to fit the GP.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	model_noise : string, optional
+		Method to model the noise.
+		If not None and if Y outputs contain multiple noisy observations for the same
+		x inputs, then the nugget (see below) is estimated from the standard
+		deviation of the multiple outputs for a given input x. Precisely the nugget
+		is multiplied by 100 * std (as data is usually normed and noise is usually
+		of the order of 1%).
+		Default is None, methods currently available are :
+
+			'EGN' (Estimated Gaussian Noise)
 
 	nugget : double or ndarray, optional
 		Introduce a nugget effect to allow smooth predictions from noisy
@@ -100,7 +141,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		The first MLE always uses the specified starting point (theta0),
 		the next starting points are picked at random according to an
 		exponential distribution (log-uniform on [thetaL, thetaU]).
-		Default does not use random starting point (random_start = 1).
+		Default is 5.
 
 	random_state: integer or numpy.RandomState, optional
 		The generator used to shuffle the sequence of coordinates of theta in
@@ -116,29 +157,30 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 	`reduced_likelihood_function_value_`: array
 		The optimal reduced likelihood function value.
+	
+	`centroids` : array of shape (n_clusters,n_features)
+		If n_clusters > 1, the array of the clusters' centroid.
+
+	`density_functions` : list of callable
+		List of length n_clusters, containing the density estimations \
+		of the outputs on each cluster.
+
+	`mapping` : callable
+		The mapping function such that mapping(Yt) has a gaussian \
+		distribution, where Yt is the output. \
+		The mapping is learned based on the KDE estimation of Yt's distribution
 		
-	mapping : the mapping function such that mapping(Yt) is a gaussian process, where Yt
-		is the output
-		Default is log.
-		
-	mapping_inv : the inverse mapping, such that mapping_inv[mapping(.)] == mapping[mapping_inv(.)] == id
-		Default is exp.
-		
-	Examples
-	--------
-	>>> import numpy as np
-	>>> from sklearn.gaussian_process import GaussianProcess
-	>>> X = np.array([[1., 3., 5., 6., 7., 8.]]).T
-	>>> y = (X * np.sin(X)).ravel()
-	>>> gp = GaussianProcess(theta0=0.1, thetaL=.001, thetaU=1.)
-	>>> gp.fit(X, y)                                      # doctest: +ELLIPSIS
-	GaussianProcess(beta0=None...
-			...
+	`mapping_inv` : callable
+		The inverse mapping numerically computed by binomial search,\
+		such that mapping_inv[mapping(.)] == mapping[mapping_inv(.)] == id
+	
+	`mapping_derivative` : callable
+		The derivative of the mapping function.		
+
 
 	Notes
 	-----
-	The presentation implementation is based on a translation of the DACE
-	Matlab toolbox, see reference [NLNS2002]_.
+	This code is based on scikit-learn's GP implementation.
 
 	References
 	----------
@@ -151,6 +193,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		and M.D.  Morris (1992). Screening, predicting, and computer
 		experiments.  Technometrics, 34(1) 15--25.`
 		http://www.jstor.org/pss/1269548
+
 	On Gaussian Copula processes :
 	.. Wilson, A. and Ghahramani, Z. Copula processes. In Advances in NIPS 23,
 		pp. 2460-2468, 2010
@@ -169,11 +212,11 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
                  thetaL=np.asarray([10.,1.,1.,.0001,1.,0.1,0.1,0.0001,1.]),
                  thetaU=np.asarray([90,50,0.1,1.,1000.,10.,1.,.01,100.]), 
 				 try_optimize=True,
-				 random_start=10, 
+				 random_start=5, 
 				 normalize=True,
 				 reNormalizeY = False,
 				 n_clusters = 1,
-				 coef_latent_mapping = 0.4,
+				 coef_latent_mapping = 0.5,
 				 mapWithNoise=False,
 				 useAllNoisyY=False,
 				 model_noise=None,
@@ -195,7 +238,6 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		self.try_optimize = try_optimize
 		self.n_clusters = n_clusters
 		self.density_functions = None
-		self.verboseMapping = False
 		self.coef_latent_mapping = coef_latent_mapping
 		self.mapWithNoise = mapWithNoise
 		self.useAllNoisyY =useAllNoisyY
@@ -257,7 +299,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			return [2047483647]
 
 
-	def mapping_derivate(self,x,t,normalize=False):
+	def mapping_derivative(self,x,t,normalize=False):
 		if(normalize):
 			t = (t-self.raw_y_mean) / self.raw_y_std
 		v = 0.
@@ -305,16 +347,18 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 	def integrate_prediction(self,mu,sigma,x,lb,ub):
 		def f_to_integrate(u):
 			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
-			temp = temp * (u * self.mapping_derivate(x,u,normalize=True) )
+			temp = temp * (u * self.mapping_derivative(x,u,normalize=True) )
 			return temp
 		return(integrate.quad(f_to_integrate,lb,ub,epsrel =0.000000001)[0])
+
 
 	def predicted_RV(self,mu,sigma,x):
 		def f_to_integrate(u):
 			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
-			temp = temp * (u * self.mapping_derivate(x,u,normalize=True) )
+			temp = temp * (u * self.mapping_derivative(x,u,normalize=True) )
 			return temp
 		return f_to_integrate
+
 
 	def init_mappings(self):
 		# We assume y is one-dimensional
@@ -326,11 +370,13 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			for i in range(self.X.shape[0]):
 				all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
 			all_data = np.asarray(all_data)
-			print('All data shape :',all_data.shape)
-			windows_idx = kmeans.fit_predict(all_data) #self.X)
+			windows_idx = kmeans.fit_predict(all_data)
 			self.centroids = kmeans.cluster_centers_[:,:-1]
-			print ("Centroids")
-			print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
+	
+			if(verbose):
+				print('All data shape :',all_data.shape)
+				print ("Centroids")
+				print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
 			
 			# Compute the density function for each sub-window
 			density_functions = []
@@ -343,15 +389,19 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				else:
 					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
 				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
-				print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
+				if(verbose):
+					print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
+	
 			density_functions = np.asarray( density_functions)
 			self.density_functions = density_functions
 			clusters_std = np.asarray(clusters_std)
 			clusters_std[clusters_std==0] = 1.
 			self.clusters_std = clusters_std
-			print('---STD---')
-			print(clusters_std)	
+
+			if(verbose):
+				print('---STD---')
+				print(clusters_std)	
 		else:
 			if(self.detailed_raw_y is not None and self.mapWithNoise):
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
@@ -421,6 +471,21 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		y : double array_like
 			An array with shape (n_samples, ) or shape (n_samples, n_targets)
 			with the observations of the output to be predicted.
+			Currently only 1D targets are supported.
+
+		detailed_y_obs : double list of list
+			A list of length n_samples where entry at position i corresponds to 
+			the mutiple noisy observations (given as a list) of the input value X[i,:], 
+			and whose mean is y[i].
+			If not None, it can be used to learn the mapping function or fit the GP,
+			see parameters mapWithNoise and useAllNoisyY of the GaussianCopulaProcess class.
+
+		obs_noise : double array
+			An array of shape (n_samples,) corresponding to the estimated noise
+			in the observed y outputs.
+			If not None, it can be used to model the noise with the Estimated
+			Gaussian Noise method, see the model_noise parameter of the 
+			GaussianCopulaProcess class.
 
 		Returns
 		-------
@@ -575,7 +640,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		return self
 
-	def predict(self, X, eval_MSE=False, transformY=True, returnRV=False, integratedPrediction= False, eval_confidence_bounds=False,upperBoundCoef=1.96, batch_size=None):
+	def predict(self, X, eval_MSE=False, transformY=True, returnRV=False, integratedPrediction= False, eval_confidence_bounds=False,coef_bound=1.96, batch_size=None):
 		"""
 		This function evaluates the Gaussian Process model at x.
 
@@ -591,6 +656,39 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			Default assumes evalMSE = False and evaluates only the BLUP (mean
 			prediction).
 
+		transformY : boolean, optional
+			A boolean specifying if the predicted values should correspond to
+			the same space as the data given to the fit method, or to the
+			warped space (in which the GP is fitted).
+			Default is True. Setting to False can be useful to compute the Expected
+			Improvement in an optimization process.
+
+		returnRV : boolean, optional
+			A boolean specifying if the method should return the predicted random variables
+			at x instead of a float number.
+			Default is False.
+
+		integratedPrediction : boolean, optional
+			A boolean specifying if the method should return the fully Bayesian
+			prediction, ie compute the expectation given the posterior in the
+			original space. If False, the returned value is the inverse value
+			(by the mapping function) of the GP prediction. This is much more faster
+			as the integratedPrediction needs to numerically compute the integral.
+			Default is False.
+
+		eval_confidence_bounds : boolean, optional
+			A boolean specifying if the method should return the confidence bounds.
+			Because of the non-linearity of the mapping function, this cannot be computed
+			directly with the MSE, but needs to invert the mapping function.
+			Default is False. If True, coef_bound specifies the boundary to compute.
+
+		coef_bound : float, optional
+			A float specifying the confidence bounds to compute. Upper and lower
+			confidence bounds are computed as the inverse of m + coef_bound*sigma
+			where m and sigma are the mean and the std of the posterior in the GP
+			space.
+			Default is 1.96 which corresponds to the 95% confidence bounds.
+
 		batch_size : integer, optional
 			An integer giving the maximum number of points that can be
 			evaluated simultaneously (depending on the available memory).
@@ -599,24 +697,28 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 		Returns
 		-------
-		y : array_like, shape (n_samples, ) or (n_samples, n_targets)
-			An array with shape (n_eval, ) if the Gaussian Process was trained
-			on an array of shape (n_samples, ) or an array with shape
-			(n_eval, n_targets) if the Gaussian Process was trained on an array
-			of shape (n_samples, n_targets) with the Best Linear Unbiased
+		y : array_like, shape (n_samples,)
 			Prediction at x.
 
 		MSE : array_like, optional (if eval_MSE == True)
-			An array with shape (n_eval, ) or (n_eval, n_targets) as with y,
-			with the Mean Squared Error at x.
+			Mean Squared Error at x.
+
+		LCB : array_like, optional (if eval_confidence_bounds == True)
+			Lower confidence bound.
+
+		UCB : array_like, optional (if eval_confidence_bounds == True)
+			Upper confidence bound.
 		"""
-		self.verboseMapping = False
 
 		# Check input shapes
 		X = array2d(X)
 		n_eval, _ = X.shape
 		n_samples, n_features = self.X.shape
 		n_samples_y, n_targets = self.y.shape
+
+		if(n_targets > 1):
+			raise ValueError('More than one target in the Y outputs. \
+							  Currently only 1D outputs are handled')
 
 		# Run input checks
 		self._check_params(n_samples)
@@ -703,9 +805,9 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				else:
 					if(eval_confidence_bounds):
 						if not(transformY):
-							print('Warning, transformy set to False but trying to evaluate conf bounds')
-						warped_y_with_boundL = warped_y - upperBoundCoef * sigma
-						warped_y_with_boundU = warped_y + upperBoundCoef * sigma
+							print('Warning, transformY set to False but trying to evaluate conf bounds')
+						warped_y_with_boundL = warped_y - coef_bound * sigma
+						warped_y_with_boundU = warped_y + coef_bound * sigma
 						pred_with_boundL = self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundL[i])[0] for i in range(size) ] ) +self.raw_y_mean
 						pred_with_boundU =  self.raw_y_std * np.asarray( [ self.mapping_inv(X[i],warped_y_with_boundU[i])[0] for i in range(size)] ) +self.raw_y_mean
 						
@@ -732,7 +834,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			return y
 
 
-	def reduced_likelihood_function(self, theta=None,verb=False):
+	def reduced_likelihood_function(self, theta=None):
 		"""
 		This function determines the BLUP parameters and evaluates the reduced
 		likelihood function for the given autocorrelation parameters theta.
@@ -900,8 +1002,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			def minus_reduced_likelihood_function(x):
 				x_reshaped = theta_backToRealShape(x,self.theta.shape)
 				return - self.reduced_likelihood_function(
-					theta=10. ** x_reshaped,
-					verb=False)[0]
+					theta=10. ** x_reshaped)[0]
 						
 			constraints = []
 			# http://stackoverflow.com/questions/25985868/scipy-why-isnt-cobyla-respecting-constraint

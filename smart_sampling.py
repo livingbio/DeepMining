@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
@@ -8,7 +6,7 @@ import numpy as np
 from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 from random import randint, randrange
-from sampling_utils import *
+import sampling_utils as utils 
 
 def smartSampling(n_iter,
 				   parameter_bounds,
@@ -30,62 +28,136 @@ def smartSampling(n_iter,
 				   isInt=True,
 				   detailed_res=False,
 				   verbose=False):
+	"""
+	n_iter : int
+		Number of smart iterations to perform.
 
-	# n_iter : the number of smart iterations to perform
+	parameters_bounds : ndarray
+		The bounds between which to sample the parameters.
+		parameter_bounds.shape = [n_parameters,2]
+		parameter_bounds[i] = [ lower bound for parameter i, upper bound for parameter i]
+	
+	score_function : callable
+		A function that computes the output, given some parameters.
+		This is the function to optimize.
+		/!\ Always put data_size as the first parameter, if not None
 
-	# n_random_init : the number of random iterations to perform before the smart sampling
+	model : string, optional
+		The model to run.
+		Choose between :
+		- GCP (runs only the Gaussian Copula Process)
+		- GP (runs only the Gaussian Process)
+		- random (samples at random)
+		- GCPR (GCP and random)
+		- all (runs all models)
+	
+	acquisition function : string, optional
+		Function to maximize in order to choose the next parameter to test.
+		- Simple : maximize the predicted output
+		- MaxUpperBound : maximize the upper confidence bound
+		- MaxLowerBound : maximize the lower confidence bound
+		- EI : maximizes the expected improvement
+		/!\ EI is not available for GP
+		Default is 'MaxUpperBound'
 
-	# parameters_bounds : the bounds between which to sample the parameters 
-	#		parameter_bounds.shape = [n_parameters,2]
-	#		parameter_bounds[i] = [ lower bound for parameter i, upper bound for parameter i]
-	
-	# score_function : callable, a function that computes the output, given some parameters
-	#       /!\ Always put data_size as the first parameter
+	corr_kernel : string, optional
+		Correlation kernel to choose for the GCP. 
+		Possible choices are :
+		- exponential_periodic (a linear combination of 3 classic kernels)
+		- squared_exponential
+		Default is 'exponential_periodic'.
 
-	# model (string) : the model to run. Choose between :
-	#		- GCP (runs only the Gaussian Copula Process)
-	#		- GP (runs only the Gaussian Process)
-	#		- random (samples at random)
-	#		- all (runs all models)
-	
-	# acquisition function (string) : the function to maximize
-	# 		- Simple : maximize the predicted output
-	#		- MaxEstimatedUpperBound : maximize the (linear estimation of) the 95% confidence upper bound
-	#		- MaxUpperBound : maximize the 95% confidence upper bound
+	n_random_init : int, optional
+		Number of random iterations to perform before the smart sampling.
+		Default is 30.
 
-	# corr_kernel (string) : the correlation kernel to choose for the GCP. 
-	#		Possible choices are :
-	#		- exponential_periodic (a linear combination of 3 classic kernels)
-	#		- squared_exponential
+	n_candidates : int, optional
+		Number of random candidates to sample for each GCP / GP iterations
+		Default is 2000.
+
+	n_clusters : int, optional
+		Number of clusters used in the parameter space to build a variable mapping for the GCP.
+		Default is 1.
 	
-	# n_candidates : the number of random parameters to consider for each GCP / GP iterations
+	cluster_evol : string {'constant', 'step', 'variable'}, optional
+		Method used to set the number of clusters.
+		If 'constant', the number of clusters is set with n_clusters.
+		If 'step', start with one cluster, and set n_clusters after 20 smart steps.
+		If 'variable', start with one cluster and increase n_clusters by one every 30 smart steps.
+		Default is constant.
+
+	n_clusters_max : int, optional
+		The maximum value for n_clusters.
+		Default is 5.
+
+	nugget : float, optional
+		The nugget to set for the Gaussian Copula Process or Gaussian Process.
+		Default is 1.e-7.
+
+	GCP_mapWithNoise : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the noisy observations are used to compute Y's distribution
+		and learn the mapping function.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	GCP_useAllNoisyY : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the warped noisy observations are used to fit the GP.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	model_noise : string {'EGN',None}, optional
+		Method to model the noise.
+		If not None and if Y outputs contain multiple noisy observations for the same
+		x inputs, then the nugget is estimated from the standard deviation of the multiple 
+		outputs for a given input x.
+		Default is None.
+
+	isInt : boolean or (n_parameters) numpy array
+		Specify which parameters are integers
+		If isInt is a boolean, all parameters are assumed to have the same type.
+		It is better to fix isInt=True rather than converting floating parameters as integers in the scoring
+		function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that
+		the function is smooth)
 	
-	# n_clusters : number of clusters used in the parameter space to build a variable mapping for the GCP
-	# 		Note : n_clusters should stay quite small, and n_random_init should be >> n_clusters
-	
-	# isInt : bool or (n_parameters) numpy array, specify which parameters are integers
-	#		If isInt is a boolean, all parameters are assumed to have the same type.
-	#		It is better to fix isInt=True rather than converting floating parameters as integers in the scoring
-	# 		function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that
-	#		the function is smooth)
-	
-	
-	
-	# returns :
-	# 	- if model == GCP , GP or random
-	#		best_parameter = the parameters that provided the best performances with regards to the scoring function
-	#	- if model == all
-	#		best_parameter, best_parameter_GP = best parameters according to the GCP / GP
-	
-	
-	
-	#----------------- ToDo : ------------------------------------------------------#
-	# - add the possibility to choose the centroids
-	# - add non-isotropic models
+	detailed_res : boolean, optional
+		Specify if the method should return only the parameters and mean outputs or all the details, see below.
+
 
 	
+	Returns
+	-------
+	all_parameters : the parameters tested during the process.
+		A list of length the number of models to use.
+		For each model, this contains a ndarray of size (n_parameters_tested,n_features).
+
+	all_raw_outputs : the detailed observations (if detailed_res == True ).
+		A list of length the number of models to use.
+		For each model, this contains a list of length the number of parameters tested during the process,
+		for each parameter, the entry is a list containing all the (noisy) observations
+
+	all_mean_outputs : the mean values of the outputs.
+		A list of length the number of models to use.
+		For each model, this contains a list of length the number of parameters tested during the process,
+		and the values correspond to the mean of the (noisy) observations.
+
+	all_std_outputs : the standard deviation of the observations (if detailed_res == True ).
+		A list of length the number of models to use.
+		For each model, this contains a list of length the number of parameters tested during the process,
+		for each parameter, the entry is the standard deviation of the (noisy) observations.
+
+	all_param_path : the path of the tested parameters.
+		ndarray of size (n_models, n_total_iter,n_features), where n_total_iter is the sum of
+		n_random_init, n_iter and n_final_iter.
+		For each model, the ndarray stores the parameters tested and the order. The main difference
+		between all_parameters is that all_parameters cannot contain twice the same parameter, but
+		all_param_path can.
+	"""
+	
+
 	#---------------------------- Init ----------------------------#
-	GCP_upperBound_coef = 2.
+	GCP_upperBound_coef = 1.96
 
 	n_parameters = parameter_bounds.shape[0]
 	if(cluster_evol != 'constant'):
@@ -135,7 +207,7 @@ def smartSampling(n_iter,
 	#-------------------- Random initialization --------------------#
 
 	# sample n_random_init random parameters to initialize the process
-	init_rand_candidates = sample_random_candidates_for_init(n_random_init,parameter_bounds,data_size_bounds,isInt)
+	init_rand_candidates = utils.sample_random_candidates_for_init(n_random_init,parameter_bounds,data_size_bounds,isInt)
 	for i in range(init_rand_candidates.shape[0]):
 		print i
 		rand_candidate = init_rand_candidates[i]
@@ -151,7 +223,7 @@ def smartSampling(n_iter,
 			std_outputs = [np.std(new_output)]
 		else:
 			parameters,raw_outputs,mean_outputs,std_outputs = \
-				add_results(parameters,raw_outputs,mean_outputs,std_outputs,rand_candidate,new_output)
+				utils.add_results(parameters,raw_outputs,mean_outputs,std_outputs,rand_candidate,new_output)
 		param_path.append(rand_candidate)		
 
 	all_parameters = []
@@ -189,7 +261,7 @@ def smartSampling(n_iter,
 					print k,'current best output',np.max(all_mean_outputs[model_idx])
 					model_idx += 1	
 				
-		rand_candidates = sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
+		rand_candidates = utils.sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
 		
 		if(verbose):
 			print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
@@ -197,7 +269,7 @@ def smartSampling(n_iter,
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
-				best_candidate = find_best_candidate(k,
+				best_candidate = utils.find_best_candidate(k,
 													 all_parameters[model_idx],
 													 all_raw_outputs[model_idx],
 													 all_mean_outputs[model_idx],
@@ -211,7 +283,7 @@ def smartSampling(n_iter,
 
 				all_parameters[model_idx],all_raw_outputs[model_idx],\
 					all_mean_outputs[model_idx],all_std_outputs[model_idx] = \
-						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
+						utils.add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
 							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
 								best_candidate,new_output)	
 				all_param_path[model_idx].append(best_candidate)	
@@ -237,7 +309,7 @@ def smartSampling(n_iter,
 		if(verbose):
 			print('Final step '+str(i))
 		
-		rand_candidates = sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
+		rand_candidates = utils.sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
 		
 		if(verbose):
 			print('Has sampled ' + str(rand_candidates.shape[0]) + ' random candidates')
@@ -245,7 +317,7 @@ def smartSampling(n_iter,
 		model_idx = 0
 		for k in range(nb_model):
 			if(modelToRun[k]):
-				best_candidate = find_best_candidate(k,
+				best_candidate = utils.find_best_candidate(k,
 													 all_parameters[model_idx],
 													 all_raw_outputs[model_idx],
 													 all_mean_outputs[model_idx],
@@ -259,7 +331,7 @@ def smartSampling(n_iter,
 
 				all_parameters[model_idx],all_raw_outputs[model_idx],\
 					all_mean_outputs[model_idx],all_std_outputs[model_idx] = \
-						add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
+						utils.add_results(all_parameters[model_idx],all_raw_outputs[model_idx],\
 							all_mean_outputs[model_idx],all_std_outputs[model_idx],\
 								best_candidate,new_output)		
 				
@@ -279,9 +351,6 @@ def smartSampling(n_iter,
 	for k in range(nb_model):
 		if(modelToRun[k]):
 			best_parameter_idx = np.argmax(all_mean_outputs[model_idx])
-			best_parameters.append(all_parameters[model_idx][best_parameter_idx])
-			if(data_size_bounds is not None):
-				best_parameter_idx2 = np.argmax(all_mean_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])
 			print k,'Best parameters '+str(all_parameters[model_idx][best_parameter_idx]) + ' with output: ' + str(all_mean_outputs[model_idx][best_parameter_idx])
 			if(data_size_bounds is not None):
 				print k,'Best parameters for complete dataset'+ \
@@ -290,7 +359,6 @@ def smartSampling(n_iter,
 									str( (all_mean_outputs[model_idx][all_parameters[model_idx][:,0] == data_size_bounds[1]])[best_parameter_idx2])
 
 			model_idx += 1
-	best_parameters = np.asarray(best_parameters)
 	
 	if(verbose):
 		print '\n','n_parameters :', n_parameters
