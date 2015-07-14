@@ -373,7 +373,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			windows_idx = kmeans.fit_predict(all_data)
 			self.centroids = kmeans.cluster_centers_[:,:-1]
 	
-			if(verbose):
+			if(self.verbose):
 				print('All data shape :',all_data.shape)
 				print ("Centroids")
 				print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
@@ -389,7 +389,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				else:
 					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
 				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
-				if(verbose):
+				if(self.verbose):
 					print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
 				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
 	
@@ -399,7 +399,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 			clusters_std[clusters_std==0] = 1.
 			self.clusters_std = clusters_std
 
-			if(verbose):
+			if(self.verbose):
 				print('---STD---')
 				print(clusters_std)	
 		else:

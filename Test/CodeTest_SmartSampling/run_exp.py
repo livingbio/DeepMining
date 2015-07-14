@@ -17,7 +17,7 @@ model_noise = None
 sampling_model = 'GCP'
 n_candidates= 100
 n_random_init= 10
-nb_GCP_steps = 10
+nb_GCP_steps = 5
 nb_iter_final = 0
 acquisition_function = 'MaxUpperBound'
 

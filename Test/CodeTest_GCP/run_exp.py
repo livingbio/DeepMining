@@ -9,8 +9,8 @@ from gcp import GaussianCopulaProcess
 parameter_bounds = np.asarray( [[0,400]] )
 training_size = 30
 nugget = 1e-10
-n_clusters = 1
-corr_kernel = 'squared_exponential'
+n_clusters_max = 3
+corr_kernel = 'exponential_periodic'
 integratedPrediction = True
 
 def scoring_function(x):
@@ -25,46 +25,55 @@ for i in range(training_size):
 x_training = np.atleast_2d(x_training).T
 
 
-gcp = GaussianCopulaProcess(nugget = nugget,
-                            corr=corr_kernel,
-                            random_start=5,
-                            normalize = True,
-                            n_clusters=n_clusters)
-gcp.fit(x_training,y_training)
-print 'GCP fitted'
-print 'Theta', gcp.theta
-if(n_clusters > 1):
-	centers = np.asarray([gcp.centroids[i][0]* gcp.X_std + gcp.X_mean for i in range(n_clusters) ], dtype=np.int32)
+fig1 = plt.figure()
+plt.title('Density estimation')
+fig2 = plt.figure()
+plt.title("GCP prediction")
 
-m = np.mean(y_training)
-s = np.std(y_training)
-y_mean, y_std = gcp.raw_y_mean,gcp.raw_y_std
-x_density_plot = (np.asarray ( range(np.int(m *100.- 100.*(s)*10.),np.int(m*100. + 100.*(s)*10.)) ) / 100. - y_mean)/ y_std
+for n_clusters in range(1,n_clusters_max+1):
 
-fig = plt.figure()
-ax = fig.add_subplot(1,2,1)
-for i in range(n_clusters):
-	plt_density_gcp = gcp.density_functions[i](x_density_plot)
+	gcp = GaussianCopulaProcess(nugget = nugget,
+	                            corr=corr_kernel,
+	                            random_start=5,
+	                            normalize = True,
+	                            n_clusters=n_clusters)
+	gcp.fit(x_training,y_training)
+
+	print 'GCP fitted'
+	print 'Theta', gcp.theta
 	if(n_clusters > 1):
-		l = 'Cluster ' + str(centers[i])
-	else:
-		l = 'KDE estimation'
-	plt.plot(x_density_plot*y_std + y_mean,plt_density_gcp,label=l)
-plt.legend()
-ax.set_title('Density estimation')
+		centers = np.asarray([gcp.centroids[i][0]* gcp.X_std + gcp.X_mean for i in range(n_clusters) ], dtype=np.int32)
 
-candidates = np.atleast_2d(range(80)).T * 5
-#simple_prediction = gcp.predict(candidates,integratedPrediction=False)
-prediction = gcp.predict(candidates,integratedPrediction=True)
+	m = np.mean(y_training)
+	s = np.std(y_training)
+	y_mean, y_std = gcp.raw_y_mean,gcp.raw_y_std
+	x_density_plot = (np.asarray ( range(np.int(m *100.- 100.*(s)*10.),np.int(m*100. + 100.*(s)*10.)) ) / 100. - y_mean)/ y_std
 
-# plot results
-abs = range(0,400)
-f_plot = [scoring_function(i) for i in abs]
-ax = fig.add_subplot(1,2,2)
-plt.plot(abs,f_plot)
-plt.plot(x_training,y_training,'bo')
-#plt.plot(candidates,simple_prediction,'go',label='Simple prediction')
-plt.plot(candidates,prediction,'r+',label='Integrated prediction')
-plt.legend()
-ax.set_title('GCP estimation')
+
+	ax1 = fig1.add_subplot(n_clusters_max,1,n_clusters)
+	for i in range(n_clusters):
+		plt_density_gcp = gcp.density_functions[i](x_density_plot)
+		if(n_clusters > 1):
+			l = 'Cluster ' + str(centers[i])
+		else:
+			l = 'KDE estimation'
+		ax1.plot(x_density_plot*y_std + y_mean,plt_density_gcp,label=l)
+	ax1.legend()
+	ax1.set_title('n_clusters == ' + str(n_clusters))
+
+	candidates = np.atleast_2d(range(80)).T * 5
+	#simple_prediction = gcp.predict(candidates,integratedPrediction=False)
+	prediction = gcp.predict(candidates,integratedPrediction=True)
+
+	# plot results
+	abs = range(0,400)
+	f_plot = [scoring_function(i) for i in abs]
+	ax2 = fig2.add_subplot(n_clusters_max,1,n_clusters)
+	plt.plot(abs,f_plot)
+	plt.plot(x_training,y_training,'bo')
+	#plt.plot(candidates,simple_prediction,'go',label='Simple prediction')
+	plt.plot(candidates,prediction,'r+',label='Integrated prediction')
+	ax2.set_title('n_clusters == ' + str(n_clusters))
+	plt.legend()
+
 plt.show()
