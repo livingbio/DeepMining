@@ -5,11 +5,10 @@ dir_name = "v4_pop" + str(pop_size)
 ### import ####
 import os
 import numpy as np
-from sklearn.cross_validation import cross_val_score,Bootstrap,KFold
+from sklearn.cross_validation import cross_val_score,KFold
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from sklearn.feature_selection import SelectKBest, chi2
 from numpy import genfromtxt, savetxt
 
 import random
@@ -113,7 +112,7 @@ print 'Go for',n_computations,'computations \n'
 
 all_parameters,all_outputs = smartSampling(nb_GCP_steps,parameter_bounds,scoring_function,isInt=True,
                                             model = 'random', nb_parameter_sampling=500,
-                                            nb_iter_final = 0, returnAllParameters=False, # just when computing the scoring function values
+                                            nb_iter_final = 0, returnAllParameters=False,
                                             nb_random_steps=n_computations,
                                             n_clusters=1,verbose=True)
 
