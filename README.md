@@ -30,7 +30,13 @@ This repository contains two tests CodeTest_GCP and CodeTest_SmartSampling that 
 The repository also contains two real examples based on the Sentiment Analysis problem for IMDB review (cf. [Kaggle's competition](https://www.kaggle.com/c/word2vec-nlp-tutorial)) and the Handwritten digits one from the MNIST database (cf. [Kaggle's competition](https://www.kaggle.com/c/digit-recognizer)).
 In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders *Test/ProblemName/scoring_function*. This way, the scrip run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.
 
-**Directory structure** - Each test instance follows the same directory structure, and all files are in the folder Test/ProblemName :
+
+![Fig1](Figures/SmartSampling_example.png?raw=true)
+*An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.*
+
+
+## Directory structure ##
+Each test instance follows the same directory structure, and all files are in the folder Test/ProblemName :
 - run_test.py : run several trials by setting the configuration for the script run_experiment
 - scoring_function/ : the off-line computations stored. params.csv contains the parameters tested, and output.csv the raw outputs given by the scoring function (all the cross-validation estimation). The files *true_score_t_TTT_a_AAA* refer to the Q<sup>1</sup> scores computed with a threshold == TTT and alpha == AAA
 - exp_restuls/expXXX : run_test stores the results in the folder expXXX where XXX is a integer refering to a configuration
@@ -39,8 +45,6 @@ In order to quickly test the optimization process, a lot of off-line computation
 - exp_results/iterations_needed/expXXX_YYY_t_TTT_a_AAA : the mean, median, first and third quartiles of the iterations needed to reach a given score gain, over experiments XXX to YYY. The score is actually the true score computed with a threshold == TTT and alpha == AAA.
 
 
-![Fig1](Figures/SmartSampling_example.png?raw=true)
-*An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate*
 .
 
 .
