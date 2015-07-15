@@ -15,7 +15,7 @@ from scipy import stats
 from sklearn.cluster import KMeans
 from scipy.spatial import distance
 from GCP_utils import *
-from sklearn_utils import *
+import sklearn_utils as sk_utils
 from scipy import integrate
 
 MACHINE_EPSILON = np.finfo(np.double).eps
@@ -495,7 +495,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		"""
 		# Run input checks
 		self._check_params()
-		X = array2d(X)
+		X = sk_utils.array2d(X)
 		# Check if all CV obs are given
 		# and if so, convert this list of list to array
 		if(detailed_y_obs is not None):
@@ -711,7 +711,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		"""
 
 		# Check input shapes
-		X = array2d(X)
+		X = sk_utils.array2d(X)
 		n_eval, _ = X.shape
 		n_samples, n_features = self.X.shape
 		n_samples_y, n_targets = self.y.shape

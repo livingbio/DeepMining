@@ -58,6 +58,7 @@ if not(n_smart_steps% 3 == 0):
 abs = range(0,400)
 f_plot = [scoring_function(i) for i in abs]
 fig = plt.figure()
+plt.title('Smart sampling process')
 
 for i in range(1,n_smart_steps+1):
 	ax = fig.add_subplot(n_rows,3,i)
@@ -65,6 +66,5 @@ for i in range(1,n_smart_steps+1):
 	ax.plot(X[:(n_random_init+i)],Y[:(n_random_init+i)],'ro',label='GCP query points')
 	ax.plot(X_init,Y_init,'bo',label='Random initialization')
 
-plt.title('Smart sampling process')
 plt.legend()
 plt.show()
