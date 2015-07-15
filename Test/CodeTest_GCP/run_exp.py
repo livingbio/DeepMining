@@ -9,7 +9,7 @@ from gcp import GaussianCopulaProcess
 parameter_bounds = np.asarray( [[0,400]] )
 training_size = 30
 nugget = 1e-10
-n_clusters_max = 3
+n_clusters_max = 4
 corr_kernel = 'exponential_periodic'
 integratedPrediction = True
 
@@ -29,6 +29,10 @@ fig1 = plt.figure()
 plt.title('Density estimation')
 fig2 = plt.figure()
 plt.title("GCP prediction")
+
+n_rows = n_clusters_max/2
+if not(n_clusters_max% 2 == 0):
+	n_rows += 1
 
 for n_clusters in range(1,n_clusters_max+1):
 
@@ -50,7 +54,7 @@ for n_clusters in range(1,n_clusters_max+1):
 	x_density_plot = (np.asarray ( range(np.int(m *100.- 100.*(s)*10.),np.int(m*100. + 100.*(s)*10.)) ) / 100. - y_mean)/ y_std
 
 
-	ax1 = fig1.add_subplot(n_clusters_max,1,n_clusters)
+	ax1 = fig1.add_subplot(n_rows,2,n_clusters)
 	for i in range(n_clusters):
 		plt_density_gcp = gcp.density_functions[i](x_density_plot)
 		if(n_clusters > 1):
@@ -63,12 +67,12 @@ for n_clusters in range(1,n_clusters_max+1):
 
 	candidates = np.atleast_2d(range(80)).T * 5
 	#simple_prediction = gcp.predict(candidates,integratedPrediction=False)
-	prediction = gcp.predict(candidates,integratedPrediction=True)
+	prediction = gcp.predict(candidates,integratedPrediction=integratedPrediction)
 
 	# plot results
 	abs = range(0,400)
 	f_plot = [scoring_function(i) for i in abs]
-	ax2 = fig2.add_subplot(n_clusters_max,1,n_clusters)
+	ax2 = fig2.add_subplot(n_rows,2,n_clusters)
 	plt.plot(abs,f_plot)
 	plt.plot(x_training,y_training,'bo')
 	#plt.plot(candidates,simple_prediction,'go',label='Simple prediction')
