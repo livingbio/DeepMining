@@ -40,3 +40,4 @@ Notations :
 - 34000 ................LGCP+1/30, UCB, SE, model_noise == EGN
 - 34500 .................LGCP+1/30, UCB, EP, model_noise == EGN
 - 36500 ............UCB, SE, mapWithNoise, model_noise == EGN
+- rand/ ..........................................................Random grid search
