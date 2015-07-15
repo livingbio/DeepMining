@@ -19,7 +19,7 @@ The GCP code is based on Scikit-learn's GP implementation.
 
 
 ### Instructions ###
-One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSmapling** function, which iteratively ask to asses the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
+One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSampling** function, which iteratively ask to asses the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
 
 To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user jsut has to provide a *scoring_function* and a *parameter_bounds* array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the *scoring_function*.
@@ -39,7 +39,7 @@ In order to quickly test the optimization process, a lot of off-line computation
 Each test instance follows the same directory structure, and all files are in the folder Test/ProblemName :
 - run_test.py : run several trials by setting the configuration for the script run_experiment
 - scoring_function/ : the off-line computations stored. params.csv contains the parameters tested, and output.csv the raw outputs given by the scoring function (all the cross-validation estimation). The files *true_score_t_TTT_a_AAA* refer to the Q<sup>1</sup> scores computed with a threshold == TTT and alpha == AAA
-- exp_restuls/expXXX : run_test stores the results in the folder expXXX where XXX is a integer refering to a configuration
+- exp_results/expXXX : run_test stores the results in the folder expXXX where XXX is a integer refering to a configuration
 - exp_results/transformed_t_TTT_a_AAA/expXXX : the analyzed results from the trial expXXX, computed by run_result_analysis with a threshold == TTT and alpha == AAA. 
 - exp_results/transformed_smooth_t_TTT_a_AAA_kKKK_rRRR_bBBB/expXXX : the analyzed results from the trial expXXX with the *smooth* quality function, computed by run_result_analysis with a threshold == TTT, alpha == AAA, using the nearest KKK neighbors, a radius coefficient RRR and beta == BBB. 
 - exp_results/iterations_needed/expXXX_YYY_t_TTT_a_AAA : the mean, median, first and third quartiles of the iterations needed to reach a given score gain, over experiments XXX to YYY. The score is actually the true score computed with a threshold == TTT and alpha == AAA.
