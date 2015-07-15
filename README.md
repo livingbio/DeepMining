@@ -5,14 +5,18 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 The GCP code is based on Scikit-learn's GP implementation.
 
 ### Python scripts ###
-- gcp.py .....................................................................The class implementing the GCP
-- GCP_utils.py .........................................................................Utility functions for GCP
-- smart_sampling.py ..........................................Script to run the optimization process
-- sampling_utils.py .....................................Utility function for the optimization process
-- sklearn_utils.py ..........................................................Utility function from Scikit-learn
-- run_experiment.py .................................Script to run several trials on a test instance
-- Test/analyze_results.py ..............The code to compute the Q<sup>1</sup> scores based on a trial
-- Test/run_result_analysis.py ............................Run analyze_results script and save it
+- gcp.py ....................................................................................The class implementing the GCP
+- GCP_utils.py ........................................................................................Utility functions for GCP
+- smart_sampling.py .........................................................Script to run the optimization process
+- sampling_utils.py ....................................................Utility function for the optimization process
+- sklearn_utils.py .........................................................................Utility function from Scikit-learn
+- run_experiment.py ................................................Script to run several trials on a test instance
+- Test/analyze_results.py ...........................The code to compute the Q<sup>1</sup> scores based on a trial
+- Test/run_result_analysis.py ...........................................Run analyze_results script and save it
+- Test/iterations_needed.py .........Script to compute the iterations needed to reach a given gain
+- Test/show_iterations_needed.py ........................................................Display iterationsNeeded
+
+
 
 ### Instructions ###
 One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSmapling** function, which iteratively ask to asses the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
@@ -32,6 +36,7 @@ In order to quickly test the optimization process, a lot of off-line computation
 - exp_restuls/expXXX : run_test stores the results in the folder expXXX where XXX is a integer refering to a configuration
 - exp_results/transformed_t_TTT_a_AAA/expXXX : the analyzed results from the trial expXXX, computed by run_result_analysis with a threshold == TTT and alpha == AAA. 
 - exp_results/transformed_smooth_t_TTT_a_AAA_kKKK_rRRR_bBBB/expXXX : the analyzed results from the trial expXXX with the *smooth* quality function, computed by run_result_analysis with a threshold == TTT, alpha == AAA, using the nearest KKK neighbors, a radius coefficient RRR and beta == BBB. 
+- exp_results/iterations_needed/expXXX_YYY_t_TTT_a_AAA : the mean, median, first and third quartiles of the iterations needed to reach a given score gain, over experiments XXX to YYY. The score is actually the true score computed with a threshold == TTT and alpha == AAA.
 
 .
 
