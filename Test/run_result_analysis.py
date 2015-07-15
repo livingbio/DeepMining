@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import sys
 from analyze_results import analyzeResults
 
 n_exp = 1
