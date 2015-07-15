@@ -193,6 +193,11 @@ def sample_random_candidates_for_init(n_candidates,parameter_bounds,data_size_bo
 	return candidates
 
 def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_output):
+	# add a new observation (ie a value returned by the scoring function, so usually a 
+	# list of all 5-fold CV results). The new observation should be concatenated to previous
+	# ones if the parameters had already been tested, or otherwise just added to the list 
+	# of observations
+
 	is_in,idx = is_in_ndarray(new_param,parameters)
 	if(is_in):
 		# parameters is already in our log
@@ -211,6 +216,18 @@ def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_o
 
 
 def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
+	# Compute Expected improvement for GCP
+	# m,sigma == mean, std from GP predictions
+	# f_best == current best value observed 
+	# Psi == mapping function
+	# Psi_prim == the derivative of the mapping function
+	# Note : max_f_value is a boundary to fasten the integration,
+	# for example for prediction accuracy ut shouldn't be greater
+	# than 1.
+	# When calling Psi and Psi_prim, normalize is set to True as here
+	# we consider directly the observed values and not the normalized 
+	# ones (but usually when fitting the GCP there is a normalization step)
+
 	if(f_best > max_f_value):
 		print('Error in compute_ei : f_best > max_f_value ')
 	def f_to_integrate(u):
@@ -221,7 +238,8 @@ def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
 
 
 def compute_unique1(a):
-	#http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+	# keep only unique values in the ndarray a
+	# http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
 
 	b = np.ascontiguousarray(a).view(np.dtype((np.void, a.dtype.itemsize * a.shape[1])))
 	_, idx = np.unique(b, return_index=True)
@@ -238,6 +256,9 @@ def compute_unique2(a1,a2):
 	return a1[idx],a2[idx]	
 
 def is_in_2darray(item,a):
+	# look for element item in 2darray a
+	# returns True if item is in a, and its index
+
 	idx0 =  a[:,0]==item[0]
 	if np.sum(idx0 > 0):
 		idx1 = (a[idx0,1] == item[1])
@@ -250,6 +271,9 @@ def is_in_2darray(item,a):
 		return False,0
 
 def is_in_ndarray(item,a):
+	# look for element item in ndarray a
+	# returns True if item is in a, and its index
+	
 	k = 0
 	idx_val = np.asarray(range(a.shape[0]))
 	idxk = range(a.shape[0])

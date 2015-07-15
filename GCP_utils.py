@@ -6,6 +6,12 @@ from sklearn_utils import *
 
 
 def theta_toOneDim(theta):
+	"""
+	When using the Exponential Periodic kernel, theta should be correctly reshaped
+	so that the first three coefficients are the same for all dimensions.
+	This method reshapes the (n_kernel_parameters,n_features) theta into a one dimensional
+	vector.
+	"""
 	if(theta.shape[1] == 1):
 		return theta[:,0]
 	if(theta.shape[0] > 1):
@@ -19,6 +25,11 @@ def theta_toOneDim(theta):
 	
 	
 def theta_backToRealShape(theta_1dim,theta_shape):
+	"""
+	When using the Exponential Periodic kernel, theta should be correctly reshaped
+	so that the first three coefficients are the same for all dimensions.
+	This method restores the real shape (n_kernel_parameters,n_features).
+	"""
 	if(theta_shape[0] > 1):
 		temp = []
 		for i in range(theta_shape[1]):
@@ -32,6 +43,8 @@ def theta_backToRealShape(theta_1dim,theta_shape):
 
 	
 def find_bounds(f, y):
+	# to invert a function by binomial search
+
 	x = 1
 	while((f(x) < y)  and (x<2047483646)):
 		x = x * 2
@@ -45,6 +58,8 @@ def find_bounds(f, y):
 	return lo, x
 	
 def binary_search(f, y, lo, hi):
+	# to invert a function by binomial search
+
 	delta = np.float(hi-lo)/10000.
 	while lo <= hi:
 		x = (lo + hi) / 2
@@ -61,6 +76,10 @@ def binary_search(f, y, lo, hi):
 		return lo	
 		
 def listOfList_toArray(params,obs):
+	# converts a list of lists (obs) into a one dimensional array 
+	# while keeping all the values in obs and repeating the parameters
+	# so that the index correspondence between params and obs is kept
+
 	array_obs = []
 	all_params = []
 	for i in range(len(obs)):
@@ -74,6 +93,11 @@ def listOfList_toArray(params,obs):
 	return all_params,array_obs
 
 def reshape_cluster_labels(labels,detailed_X):
+	# reshape the list labels that matched to the params array
+	# (containing unique values) to all_params array (parameters 
+	# are repated to match detailed_obs)
+	# Note that repeated params appear successively
+
 	detailed_labels = [labels[0]]
 	unique_count = 0 # to map to 'labels' list
 	for i in range(1,detailed_X.shape[0]):
@@ -126,7 +150,7 @@ def sq_exponential(theta,d):
 
 
 def exponential_periodic(theta,d):
-	# theta is a numpy array with shape (8,1) or (8,d.shape[1])
+	# theta is a numpy array with shape (9,1) or (9,d.shape[1])
 	t0 = np.mean(theta[0,:] ) / 100.
 	t1 = np.mean(theta[1,:] ) / 100.
 	t2 = np.mean(theta[2,:] ) / 100.
