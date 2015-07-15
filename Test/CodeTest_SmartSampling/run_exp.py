@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 sys.path.append("../../")
 from smart_sampling import smartSampling
-from gcp import GaussianCopulaProcess
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
