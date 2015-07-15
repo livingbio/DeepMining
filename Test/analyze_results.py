@@ -1,11 +1,50 @@
 import os
 import numpy as np
 from scipy import stats
+from sklearn.neighbors import NearestNeighbors
 
 
-def analyzeResults(test_name,n_exp,threshold,alpha,verbose):
+def analyzeResults(test_name,n_exp,threshold,alpha,
+                   smoothQ = False,
+                   kneighbors_s = 3,
+                   sigma_s = 200.,
+                   beta = 5.,
+                   verbose= False):
 
-    folder = test_name + "/exp_results/transformed_t_"+str(threshold)+"_a_"+str(alpha)
+    """
+
+    Parameters
+    ----------
+    test_name : name of the test instance, should correspond to a 
+        folder name in Test/
+
+    n_exp : the index number of the experiment to analyze
+
+    threshold : threshold to use to decide wether the difference between 
+        observations' means is significative, based on Welch's t-test
+
+    alpha : trade-off parameter to compute the score from the significative
+        mean and the standard deviation. score == m - alpha * std
+
+    smoothQ : boolean, optional. If True, compute the smooth quality function.
+        See the Deep Mining paper for details.
+
+    kneighbors_s : if smoothQ == True, number of nearest neighbors to take into 
+        account for the smoothing
+
+    sigma_s : if smoothQ == True, radius used to compute the coefficients based 
+        on a neighbor's return_distance for the smoothing
+
+    beta : if smoothQ == True, parameter to balance betwwen the smoothed mean and
+        and the original one. m = (smoothed_mean + beta * original_mean) / (1+beta)
+
+    """
+    if not (smoothQ):
+        folder = test_name + "/exp_results/transformed_t_"+str(threshold)+"_a_"+str(alpha) 
+    else:
+        folder = test_name + "/exp_results/transformed_smooth_t_"+str(threshold)+"_a_"+str(alpha)+ \
+                "_k" + str(kneighbors_s) + "_r" + str( int(sigma_s)) + "_b" + str(beta)
+
     if not os.path.exists(folder):
       os.mkdir(folder)
 
@@ -18,8 +57,8 @@ def analyzeResults(test_name,n_exp,threshold,alpha,verbose):
     std_outputs = []
     raw_outputs = []
 
-    p_dir = test_name + "exp_results/exp"+str(n_exp)+"/param_0.csv"
-    f =open(test_name + "exp_results/exp"+str(n_exp)+"/output_0.csv",'r')
+    p_dir = test_name + "/exp_results/exp"+str(n_exp)+"/param_0.csv"
+    f =open(test_name + "/exp_results/exp"+str(n_exp)+"/output_0.csv",'r')
 
     for l in f:
         l = l[1:-2]
@@ -37,6 +76,31 @@ def analyzeResults(test_name,n_exp,threshold,alpha,verbose):
 
 
     parameters = np.genfromtxt(p_dir,delimiter=',')
+
+    if(smoothQ):
+        smooth_raw_output = []
+        smooth_output = []
+        smoothingKNN = NearestNeighbors()
+        smoothingKNN.fit(parameters)
+        for i in range(parameters.shape[0]):
+            neighbor_dist, neighbor_idx = smoothingKNN.kneighbors(parameters[i,:],kneighbors_s,return_distance=True)
+            coefs = np.exp(- (neighbor_dist / sigma_s) **2.)[0]
+            neighbor_idx = neighbor_idx[0]
+            smooth_o = (np.mean([ coefs[j]* mean_outputs[neighbor_idx[j]] for j in range(kneighbors_s)]) + beta*mean_outputs[i]) \
+                        /(1. + beta)
+            ro = raw_outputs[i]
+            diff = smooth_o - mean_outputs[i]
+            smooth_raw_output.append([ (diff + o) for o in ro ])
+            smooth_output.append(smooth_o)
+            
+        mean_outputs = smooth_output
+        raw_outputs = smooth_raw_output
+
+        if(verbose):
+            c_print = 0
+            for o in mean_outputs:
+                print c_print, o
+                c_print += 1
 
     sorted_idx = np.argsort(mean_outputs)
     sorted_raw_outputs= [ raw_outputs[i] for i in sorted_idx ]

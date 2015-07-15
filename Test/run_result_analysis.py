@@ -2,16 +2,25 @@ import matplotlib.pyplot as plt
 import sys
 from analyze_results import analyzeResults
 
+n_exp = 1
 test_name = "MNIST"
-# threshold to make the means setps through Welch's t-test
+
 threshold = 0.5
-# coef to compute the final score : mean - alpha * std
 alpha = 0.5
 
-n_exp = 5001
+smoothQ = True
+kneighbors_s = 3
+sigma_s = 200.
+beta = 5.
+
 verbose = True
 
-scores = analyzeResults(test_name,n_exp,threshold,alpha,verbose)
+scores = analyzeResults(test_name,n_exp,threshold,alpha,
+						smoothQ = smoothQ,
+						kneighbors_s = kneighbors_s,
+						sigma_s = sigma_s,
+						beta = beta ,
+						verbose=verbose)
 
 fig = plt.figure(figsize=(15,7))
 plt.plot(range(scores.shape[0]),scores)

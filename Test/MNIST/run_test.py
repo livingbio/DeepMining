@@ -4,7 +4,7 @@ sys.path.append("../../")
 from run_experiment import runExperiment
 
 n_exp = 1
-first_exp = 5001 # int(sys.argv[1])
+first_exp = 1 # int(sys.argv[1])
 
 print 'Arguments:',sys.argv
 
