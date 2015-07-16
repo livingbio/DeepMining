@@ -256,6 +256,12 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		if(normalize):
 			t = (t-self.raw_y_mean) / self.raw_y_std
 		v = 0.
+		# if t is too big, F_est(t) will be too close to 1
+		# this is an issue as in that case norm.ppf( F_est(t) ) will return Nan
+		# so we force F_est(t) to be smaller than 0.999999998 which corresponds to
+		# norm.ppf( F_est(t) ) being smaller than 6.3
+		# Normally doing this shouldn't cause any problem. But such extrem t values can
+		# be queried by the binomial search to invert the mapping (mapping_inv)
 		if( t < 2047483647):
 			if(self.n_clusters > 1):
 				coefs = np.ones(self.n_clusters)
@@ -265,6 +271,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					#	 exp{  - sum [ (d_i /std_i) **2 ]  }
 					coefs[w] =  np.exp(- np.sum( (self.coef_latent_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
+					# if temp is too close to 1, norm.ppf(temp) == Nan
+					# if temp == 0, norm.ppf(temp) == -inf
 					temp = min(0.999999998,temp)
 					if(temp == 0):
 						temp = 1e-10
@@ -280,10 +288,14 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				
 			else:
 				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
-				temp =  min(0.999999998,temp )
+				# if temp is too close to 1, norm.ppf(temp) == Nan
+				# if temp == 0, norm.ppf(temp) == -inf
+				temp = min(0.999999998,temp)
+				if(temp == 0):
+					temp = 1e-10
 				v = norm.ppf(temp)
-		else:  
-	        	v = 6.3
+		else:
+			v = 6.3
 			
 		return [v]
 		
@@ -300,6 +312,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 
 	def mapping_derivative(self,x,t,normalize=False):
+		# our mapping function is constant for t values greater than 2047483646
+		# so for such values mapping_derivate should be null
 		if(normalize):
 			t = (t-self.raw_y_mean) / self.raw_y_std
 		v = 0.
@@ -338,13 +352,14 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				temp = norm.pdf(temp)
 				# d_est / pdf(...)
 				v = self.density_functions[0](t) / temp
-		else:  
-	        	v = 0.
+		else:
+			v = 0.
 			
 		return (v/self.raw_y_std)	
 
 
 	def integrate_prediction(self,mu,sigma,x,lb,ub):
+		# utility function for the predict method
 		def f_to_integrate(u):
 			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
 			temp = temp * (u * self.mapping_derivative(x,u,normalize=True) )
@@ -353,6 +368,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 
 	def predicted_RV(self,mu,sigma,x):
+		# utility function for the predict method
 		def f_to_integrate(u):
 			temp = norm.pdf(self.mapping(x,u,normalize=True),loc=mu,scale=sigma)
 			temp = temp * (u * self.mapping_derivative(x,u,normalize=True) )
