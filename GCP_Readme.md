@@ -1,4 +1,4 @@
-### The Gaussian Copula Process model class. ###
+### The Gaussian Copula Process class. ###
 
 #### Parameters ####
 
