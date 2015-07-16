@@ -2,7 +2,6 @@ import numpy as np
 import sys
 from har6 import har6
 
-
 sys.path.append("../../")
 from smart_sampling import smartSampling
 
