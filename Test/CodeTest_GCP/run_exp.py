@@ -7,11 +7,11 @@ from gcp import GaussianCopulaProcess
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
-training_size = 30
-nugget = 1e-10
+training_size = 20
+nugget = 1.e-10
 n_clusters_max = 4
-corr_kernel = 'exponential_periodic'
-integratedPrediction = True
+corr_kernel = 'squared_exponential'
+integratedPrediction = False
 
 def scoring_function(x):
     return (70-7*np.exp(x/50. - ((x-55.)**2)/500.) + 6*np.sin(x/40.) +3./(1.1+np.cos(x/50.)) - 15./(3.3-3*np.sin((x-70)/25.)))/100.

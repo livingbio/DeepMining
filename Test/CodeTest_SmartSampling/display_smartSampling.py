@@ -7,6 +7,8 @@ sys.path.append("../../")
 import sampling_utils as utils 
 from gcp import GaussianCopulaProcess
 
+save_plots = False
+
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
 nugget = 1.e-10
@@ -18,7 +20,7 @@ model_noise = None
 sampling_model = 'GCP'
 n_candidates= 300
 n_random_init= 10
-nb_GCP_steps = 9
+nb_GCP_steps = 3
 nb_iter_final = 0
 acquisition_function = 'MaxUpperBound'
 
@@ -47,7 +49,6 @@ parameters = None
 raw_outputs = None
 
 
-
 fig = plt.figure()
 
 abs = range(0,400)
@@ -55,6 +56,11 @@ f_plot = [scoring_function(i) for i in abs]
 n_rows = nb_GCP_steps/3
 if not(nb_GCP_steps% 3 == 0):
 	n_rows += 1
+
+if(save_plots):
+	save_data = np.asarray([np.asarray(abs),np.asarray(f_plot)[:,0]]).T
+	np.savetxt('data_plot.csv',save_data,delimiter=',')
+
 #-------------------- Random initialization --------------------#
 
 # sample n_random_init random parameters to initialize the process
@@ -78,6 +84,10 @@ for i in range(init_rand_candidates.shape[0]):
 
 X_init = parameters
 Y_init = list(mean_outputs)
+
+if(save_plots):
+	save_data = np.asarray([X_init[:,0],np.asarray(Y_init)]).T
+	np.savetxt('train_data_plot.csv',save_data,delimiter=',')
 
 for i in range(nb_GCP_steps):
 	rand_candidates = utils.sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
@@ -103,6 +113,7 @@ for i in range(nb_GCP_steps):
 			s_candidates = rand_candidates[idx,0]
 			s_boundL = boundL[idx]
 			s_boundU = boundU[idx]
+			s_pred = predictions[idx]
 
 			ax = fig.add_subplot(n_rows,3,i+1)
 			ax.plot(abs,f_plot)
@@ -113,10 +124,18 @@ for i in range(nb_GCP_steps):
 			ax.set_title('Step ' +str(i+1))
 			ax.axis(window)
 
+			if(save_plots):
+				save_data = np.asarray([s_candidates,s_boundL,s_boundU,s_pred]).T
+				np.savetxt('step' +str(i)+ '_data_plot.csv',save_data,delimiter=',')
+
 			new_output = scoring_function(best_candidate)
 			l, = ax.plot(best_candidate,new_output,'yo')
 			parameters,raw_outputs,mean_outputs,std_outputs = \
 				utils.add_results(parameters,raw_outputs,mean_outputs,std_outputs,best_candidate,new_output)
+
+			if(save_plots):
+				save_data = np.asarray([best_candidate,new_output]).T
+				np.savetxt('step' +str(i)+ '_nextpoint_plot.csv',save_data,delimiter=',')
 
 		else:
 			##EI
