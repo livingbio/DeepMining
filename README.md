@@ -1,6 +1,6 @@
 ## Deep Mining : Copula-based Hyperparameter Optimization for Machine Learning Pipelines ##
 
-This repository contains all the code implmenting the Gaussian Copula Process (GCP) and a hyperparameter optimization technique based on it.
+This repository contains all the code implmenting the **Gaussian Copula Process (GCP)** and a hyperparameter optimization technique based on it.
 All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 The GCP code is based on Scikit-learn's GP implementation.
 
@@ -25,9 +25,11 @@ To run it on a new pipeline, create a folder *newPipeline* in the Test folder, a
 The SmartSmapling function has many parameters but most of them have default values. Basically the user jsut has to provide a *scoring_function* and a *parameter_bounds* array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the *scoring_function*.
 
 ### Examples ###
-This repository contains two tests CodeTest_GCP and CodeTest_SmartSampling that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see [below](Fig1)). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.
+This repository contains two tests CodeTest_GCP and CodeTest_SmartSampling that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see figure below). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.
 
-The repository also contains two real examples based on the Sentiment Analysis problem for IMDB review (cf. [Kaggle's competition](https://www.kaggle.com/c/word2vec-nlp-tutorial)) and the Handwritten digits one from the MNIST database (cf. [Kaggle's competition](https://www.kaggle.com/c/digit-recognizer)).
+The Branin and Hartmann 6D functions are two artificial examples which are standard test instances for optimization processes. Their evaluation is fast so there is no need to store their values in the scoring_function folder. Note that these functions handle floating point so that can be useful for test purposes as the following examples are made with integers.
+
+The two real examples contained in the repository are the Sentiment Analysis problem for IMDB review (cf. [Kaggle's competition](https://www.kaggle.com/c/word2vec-nlp-tutorial)) and the Handwritten digits one from the MNIST database (cf. [Kaggle's competition](https://www.kaggle.com/c/digit-recognizer)).
 In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders *Test/ProblemName/scoring_function*. This way, the scrip run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.
 
 
