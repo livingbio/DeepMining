@@ -5,6 +5,7 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 The GCP code is based on Scikit-learn's GP implementation.
 
 ### Python scripts ###
+-------------------------------
 - gcp.py ....................................................................................The class implementing the GCP
 - GCP_utils.py ........................................................................................Utility functions for GCP
 - smart_sampling.py .........................................................Script to run the optimization process
@@ -19,12 +20,14 @@ The GCP code is based on Scikit-learn's GP implementation.
 
 
 ### Instructions ###
+-------------------------------
 One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSampling** function, which iteratively ask to asses the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
 
 To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user jsut has to provide a *scoring_function* and a *parameter_bounds* array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the *scoring_function*.
 
 ### Examples ###
+-------------------------------
 This repository contains two tests **CodeTest_GCP** and **CodeTest_SmartSampling** that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see figure below). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.
 
 The **Branin** and **Hartmann 6D** functions are two artificial examples which are standard test instances for optimization processes. Their evaluation is fast so there is no need to store their values in the scoring_function folder. Note that these functions handle floating point so that can be useful for test purposes as the following examples are made with integers.
@@ -37,7 +40,8 @@ In order to quickly test the optimization process, a lot of off-line computation
 *An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.*
 
 
-## Directory structure ##
+### Directory structure ###
+-------------------------------
 Each test instance follows the same directory structure, and all files are in the folder Test/ProblemName :
 - run_test.py : run several trials by setting the configuration for the script run_experiment
 - scoring_function/ : the off-line computations stored. params.csv contains the parameters tested, and output.csv the raw outputs given by the scoring function (all the cross-validation estimation). The files *true_score_t_TTT_a_AAA* refer to the Q<sup>1</sup> scores computed with a threshold == TTT and alpha == AAA
@@ -49,8 +53,15 @@ Each test instance follows the same directory structure, and all files are in th
 
 .
 
-.
+----------------
 
 Notes :
 
 1. The Q score here refers to the quality function of the Deep Mining paper using the discrete mean values (after performing Welch's t-test) and the standard deviation of the multiple performance estimations.
+
+---------------
+
+.
+#### Acknowledgments ####
+* Many thanks to [Kalyan Veeramachaneni](http://www.kalyanv.org/) who originated this project during my visit at [Alfa Group](http://groups.csail.mit.edu/EVO-DesignOpt/groupWebSite/) (CSAIL, MIT), and for all his great advice.
+* I would also like to thank Scikit-learn contributors as this code is based on Scikit-learn's GP implementation.
