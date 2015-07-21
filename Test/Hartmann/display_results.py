@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-labels = ['GCP','GP']
-first_exps = [1,101]
-last_exps = [10,110]
+labels = ['GCP','GP','GCP-EP','LGCP']
+first_exps = [1,101,201,301]
+last_exps = [10,110,207,307]
 
 fig = plt.figure()
 
@@ -27,7 +27,7 @@ for i in range(len(first_exps)):
 
 	mean_result = [ np.mean([all_max_outputs[k][j] for k in range(len(all_max_outputs))] ) for j in range(len(all_max_outputs[0]))]
 	std_result = [ np.std([all_max_outputs[k][j] for k in range(len(all_max_outputs))] ) for j in range(len(all_max_outputs[0]))]
-	print labels[i],'max:', np.mean([all_max_outputs[k][-1] for k in range(len(all_max_outputs))] ) ,\
+	print labels[i],'max:', np.max([all_max_outputs[k][-1] for k in range(len(all_max_outputs))] ) ,\
 					'mean:',mean_result[-1],'std:',std_result[-1]
 	
 	plt.plot(range(len(mean_result)),mean_result,label=labels[i])
