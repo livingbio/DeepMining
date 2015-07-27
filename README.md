@@ -2,7 +2,20 @@
 
 This repository contains all the code implementing the **Gaussian Copula Process (GCP)** and a **hyperparameter optimization** technique based on it.
 All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
-The GCP code is based on Scikit-learn's GP implementation.
+
+
+### Overview ###
+---------------
+The **Deep Mining** project aims at finding the best hyperparameter set for a Machine Learning pipeline. A pipeline example for the [handwritten digit recognition problem](http://yann.lecun.com/exdb/mnist/) is presented below. Some hyperparameters indeed need to be set carefully, as the degree for the polynomial kernel of the SVM. Choosing the value of such hyperparameters can be a very difficult task and this project's goal is to make it much easier.
+
+**This software will test iteratively, and smartly, some hyperparameter sets in order to find as quickly as possible the best ones to achieve the best classification accuracy that your pipeline can offer.**
+
+To do so, this software is based on Gaussian Copula Process. This can be seen as an improved version of the Gaussian Process, that does not assume a Gaussian prior for the marginal distributions but lies on a more complex prior. This new technique is proved to outperform GP-based hyperparameter optimization, which is already far better than the randomized search.
+
+A paper explaining the GCP approach as well as the hyperparameter process is currently being written and will be linked here as soon as possible.
+
+![Fig2](Figures/DeepMining_workflow.png?raw=true)
+
 
 ### Python scripts ###
 -------------------------------
