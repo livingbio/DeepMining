@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Deep Mining by sds-dubois</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Deep Mining</h1>
+      <h2 class="project-tagline">Sebastien Dubois</h2>
+      <a href="https://github.com/sds-dubois/DeepMining" class="btn">View on GitHub</a>
+      <a href="https://github.com/sds-dubois/DeepMining/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/sds-dubois/DeepMining/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h2>
+<a id="deep-mining--copula-based-hyperparameter-optimization-for-machine-learning-pipelines" class="anchor" href="#deep-mining--copula-based-hyperparameter-optimization-for-machine-learning-pipelines" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deep Mining : Copula-based Hyperparameter Optimization for Machine Learning Pipelines</h2>
+
+<p>This repository contains all the code implementing the <strong>Gaussian Copula Process (GCP)</strong> and a <strong>hyperparameter optimization</strong> technique based on it.
+All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.</p>
+
+<h3>
+<a id="overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h3>
+<hr>
+<p>The <strong>Deep Mining</strong> project aims at finding the best hyperparameter set for a Machine Learning pipeline. A pipeline example for the <a href="http://yann.lecun.com/exdb/mnist/">handwritten digit recognition problem</a> is presented below. Some hyperparameters indeed need to be set carefully, as the degree for the polynomial kernel of the SVM. Choosing the value of such hyperparameters can be a very difficult task and this project's goal is to make it much easier.</p>
+<p><strong>This software will test iteratively, and smartly, some hyperparameter sets in order to find as quickly as possible the best ones to achieve the best classification accuracy that your pipeline can offer.</strong></p>
+<p>To do so, this software is based on Gaussian Copula Process. This can be seen as an improved version of the Gaussian Process, that does not assume a Gaussian prior for the marginal distributions but lies on a more complex prior. This new technique is proved to outperform GP-based hyperparameter optimization, which is already far better than the randomized search.</p>
+<p>A paper explaining the GCP approach as well as the hyperparameter process is currently being written and will be linked here as soon as possible.</p>
+<p><img src="https://raw.githubusercontent.com/sds-dubois/DeepMining/master/Figures/DeepMining_workflow.png" alt="Fig2" class="inline"/>
+
+
+
+<h3>
+<a id="python-scripts" class="anchor" href="#python-scripts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Python scripts</h3>
+
+<hr>
+
+<ul>
+<li>gcp.py ....................................................................................The class implementing the GCP</li>
+<li>GCP_utils.py ........................................................................................Utility functions for GCP</li>
+<li>smart_sampling.py .........................................................Script to run the optimization process</li>
+<li>sampling_utils.py ....................................................Utility function for the optimization process</li>
+<li>sklearn_utils.py .........................................................................Utility function from Scikit-learn</li>
+<li>run_experiment.py ................................................Script to run several trials on a test instance</li>
+<li>Test/analyze_results.py ...........................The code to compute the Q<sup>1</sup> scores based on a trial</li>
+<li>Test/run_result_analysis.py ...........................................Run analyze_results script and save it</li>
+<li>Test/iterations_needed.py .........Script to compute the iterations needed to reach a given gain</li>
+<li>Test/show_iterations_needed.py ........................................................Display iterationsNeeded</li>
+</ul>
+
+<h3>
+<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions</h3>
+
+<hr>
+
+<p>One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the <strong>SmartSampling</strong> function, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the <strong>scoring function</strong> which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.</p>
+
+<p>To run it on a new pipeline, create a folder <em>newPipeline</em> in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
+The SmartSmapling function has many parameters but most of them have default values. Basically the user just has to provide a <em>scoring_function</em> and a <em>parameter_bounds</em> array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the <em>scoring_function</em>.</p>
+
+<h3>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h3>
+
+<hr>
+
+<p>This repository contains two tests <strong>CodeTest_GCP</strong> and <strong>CodeTest_SmartSampling</strong> that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see figure below). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.</p>
+
+<p>The <strong>Branin</strong> and <strong>Hartmann 6D</strong> functions are two artificial examples which are standard test instances for optimization processes. Their evaluation is fast so there is no need to store their values in the scoring_function folder. Note that these functions handle floating point so that can be useful for test purposes as the following examples are made with integers.</p>
+
+<p>The two real examples contained in the repository are the <strong>Sentiment Analysis problem</strong> for IMDB reviews (cf. <a href="https://www.kaggle.com/c/word2vec-nlp-tutorial">Kaggle's competition</a>) in folder Test/Bags_of_Popcorn, and the <strong>Handwritten digits</strong> one from the MNIST database (cf. <a href="https://www.kaggle.com/c/digit-recognizer">Kaggle's competition</a>) in folder Test/MNIST.
+In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders <em>Test/ProblemName/scoring_function</em>. This way, the script run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.</p>
+
+<p><img src="https://raw.githubusercontent.com/sds-dubois/DeepMining/master/Figures/SmartSampling_example.png" alt="Fig1" class="inline"/>
+<em>An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.</em></p>
+
+<h3>
+<a id="directory-structure" class="anchor" href="#directory-structure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directory structure</h3>
+
+<hr>
+
+<p>Each test instance follows the same directory structure, and all files are in the folder Test/ProblemName :</p>
+
+<ul>
+<li>run_test.py : run several trials by setting the configuration for the script run_experiment</li>
+<li>scoring_function/ : the off-line computations stored. params.csv contains the parameters tested, and output.csv the raw outputs given by the scoring function (all the cross-validation estimation). The files <em>true_score_t_TTT_a_AAA</em> refer to the Q<sup>1</sup> scores computed with a threshold == TTT and alpha == AAA</li>
+<li>exp_results/expXXX : run_test stores the results in the folder expXXX where XXX is a integer refering to a configuration</li>
+<li>exp_results/transformed_t_TTT_a_AAA/expXXX : the analyzed results from the trial expXXX, computed by run_result_analysis with a threshold == TTT and alpha == AAA. </li>
+<li>exp_results/transformed_smooth_t_TTT_a_AAA_kKKK_rRRR_bBBB/expXXX : the analyzed results from the trial expXXX with the <em>smooth</em> quality function, computed by run_result_analysis with a threshold == TTT, alpha == AAA, using the nearest KKK neighbors, a radius coefficient RRR and beta == BBB. </li>
+<li>exp_results/iterations_needed/expXXX_YYY_t_TTT_a_AAA : the mean, median, first and third quartiles of the iterations needed to reach a given score gain, over experiments XXX to YYY. The score is actually the true score computed with a threshold == TTT and alpha == AAA.</li>
+</ul>
+
+
+<h3>
+<a id="Algorithm Details" class="anchor" href="#algorithm-details" aria-hidden="true"><span class="octicon octicon-link"></span></a>Algorithmic Details</h3>
+See more details about what the code does and how in the PDF file <a href="https://drive.google.com/file/d/0B7gaDDDqFUx4U1RxUUduc0JrUlU/view?usp=sharing">here</a>.
+<hr>
+
+
+<p>.</p>
+
+
+<h4>
+<a id="notes1" class="anchor" href="#notes1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h4>
+<hr>
+
+<ol>
+<li>The Q score here refers to the quality function of the Deep Mining paper using the discrete mean values (after performing Welch's t-test) and the standard deviation of the multiple performance estimations.</li>
+</ol>
+
+
+<p>.</p>
+
+<h4>
+<a id="acknowledgments" class="anchor" href="#acknowledgments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgments</h4>
+<hr>
+
+<ul>
+<li>Many thanks to <a href="http://www.kalyanv.org/">Kalyan Veeramachaneni</a> who originated this project during my visit at <a href="http://groups.csail.mit.edu/EVO-DesignOpt/groupWebSite/">Alfa Group</a> (CSAIL, MIT), and for all his great advice.</li>
+<li>I would also like to thank Scikit-learn contributors as this code is based on Scikit-learn's GP implementation.</li>
+</ul>
+
+<hr>
+
+<p>
+</p>
+
+<h2>
+<a id="code-doc" class="anchor" href="#code-doc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code Documentation</h2>
+
+<h3>
+<a id="smart-sampling" class="anchor" href="#smart-sampling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Smart Sampling</h3>
+
+<hr>
+
+<h4>
+<a id="parameters" class="anchor" href="#parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parameters</h4>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n_iter</td>
+<td>int</td>
+</tr>
+<tr>
+<td></td>
+<td>Number of smart iterations to perform.</td>
+</tr>
+<tr>
+<td>parameters_bounds</td>
+<td>ndarray</td>
+</tr>
+<tr>
+<td></td>
+<td>The bounds between which to sample the parameters. parameter_bounds.shape = [n_parameters,2], parameter_bounds[i] = [ lower bound for parameter i, upper bound for parameter i]</td>
+</tr>
+<tr>
+<td>score_function</td>
+<td>callable</td>
+</tr>
+<tr>
+<td></td>
+<td>A function that computes the output, given some parameters. This is the function to optimize. /!\ Always put data_size as the first parameter, if not None</td>
+</tr>
+<tr>
+<td>model</td>
+<td>string, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The model to run. Choose between : GCP (runs only the Gaussian Copula Process), GP (runs only the Gaussian Process), random (samples at random), GCPR (GCP and random), all (runs all models)</td>
+</tr>
+<tr>
+<td>acquisition function</td>
+<td>string, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Function to maximize in order to choose the next parameter to test. Simple : maximize the predicted output; MaxUpperBound : maximize the upper confidence bound; MaxLowerBound : maximize the lower confidence bound; EI : maximizes the expected improvement. /!\ EI is not available for GP. Default is 'MaxUpperBound'</td>
+</tr>
+<tr>
+<td>corr_kernel</td>
+<td>string, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Correlation kernel to choose for the GCP. Possible choices are : exponential_periodic (a linear combination of 3 classic kernels); squared_exponential. Default is 'exponential_periodic'.</td>
+</tr>
+<tr>
+<td>n_random_init</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Number of random iterations to perform before the smart sampling. Default is 30.</td>
+</tr>
+<tr>
+<td>n_candidates</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Number of random candidates to sample for each GCP / GP iterations Default is 2000.</td>
+</tr>
+<tr>
+<td>n_clusters</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Number of clusters used in the parameter space to build a variable mapping for the GCP. Default is 1.</td>
+</tr>
+<tr>
+<td>cluster_evol</td>
+<td>string {'constant', 'step', 'variable'}, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Method used to set the number of clusters. If 'constant', the number of clusters is set with n_clusters. If 'step', start with one cluster, and set n_clusters after 20 smart steps. If 'variable', start with one cluster and increase n_clusters by one every 30 smart steps. Default is constant.</td>
+</tr>
+<tr>
+<td>n_clusters_max</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The maximum value for n_clusters. Default is 5.</td>
+</tr>
+<tr>
+<td>nugget</td>
+<td>float, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The nugget to set for the Gaussian Copula Process or Gaussian Process. Default is 1.e-7.</td>
+</tr>
+<tr>
+<td>GCP_mapWithNoise</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If True and if Y outputs contain multiple noisy observations for the same x inputs, then all the noisy observations are used to compute Y's distribution and learn the mapping function. Otherwise, only the mean of the outputs, for a given input x, is considered. Default is False.</td>
+</tr>
+<tr>
+<td>GCP_useAllNoisyY</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If True and if Y outputs contain multiple noisy observations for the same x inputs, then all the warped noisy observations are used to fit the GP. Otherwise, only the mean of the outputs, for a given input x, is considered. Default is False.</td>
+</tr>
+<tr>
+<td>model_noise</td>
+<td>string {'EGN',None}, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Method to model the noise. If not None and if Y outputs contain multiple noisy observations for the same x inputs, then the nugget is estimated from the standard deviation of the multiple outputs for a given input x. Default is None.</td>
+</tr>
+<tr>
+<td>isInt</td>
+<td>boolean or (n_parameters) numpy array</td>
+</tr>
+<tr>
+<td></td>
+<td>Specify which parameters are integers. If isInt is a boolean, all parameters are assumed to have the same type. It is better to fix isInt=True rather than converting floating parameters as integers in the scoring function, because this would generate a discontinuous scoring function (whereas GP / GCP assume that the function is smooth).</td>
+</tr>
+<tr>
+<td>detailed_res</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Specify if the method should return only the parameters and mean outputs or all the details, see below.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>
+<a id="returns" class="anchor" href="#returns" aria-hidden="true"><span class="octicon octicon-link"></span></a>Returns</h4>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>all_parameters</td>
+<td>the parameters tested during the process.</td>
+</tr>
+<tr>
+<td></td>
+<td>A list of length the number of models to use.   For each model, this contains a ndarray of size (n_parameters_tested,n_features).</td>
+</tr>
+<tr>
+<td>all_raw_outputs</td>
+<td>the detailed observations (if detailed_res == True ).</td>
+</tr>
+<tr>
+<td></td>
+<td>A list of length the number of models to use.   For each model, this contains a list of length the number of parameters tested during the process,  for each parameter, the entry is a list containing all the (noisy) observations.</td>
+</tr>
+<tr>
+<td>all_mean_outputs</td>
+<td>the mean values of the outputs.</td>
+</tr>
+<tr>
+<td></td>
+<td>A list of length the number of models to use. For each model, this contains a list of length the number of parameters tested during the process, and the values correspond to the mean of the (noisy) observations.</td>
+</tr>
+<tr>
+<td>all_std_outputs</td>
+<td>the standard deviation of the observations (if detailed_res == True ).</td>
+</tr>
+<tr>
+<td></td>
+<td>A list of length the number of models to use.   For each model, this contains a list of length the number of parameters tested during the process,  for each parameter, the entry is the standard deviation of the (noisy) observations.</td>
+</tr>
+<tr>
+<td>all_param_path</td>
+<td>the path of the tested parameters.</td>
+</tr>
+<tr>
+<td></td>
+<td>ndarray of size (n_models, n_total_iter,n_features), where n_total_iter is the sum of   n_random_init, n_iter and n_final_iter. For each model, the ndarray stores the parameters tested and the order. The main difference between all_parameters is that all_parameters cannot contain twice the same parameter, but  all_param_path can.</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="gaussian-copula-process" class="anchor" href="#gaussian-copula-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gaussian Copula Process</h3>
+
+<hr>
+
+<h4>
+<a id="parameters-1" class="anchor" href="#parameters-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parameters</h4>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>regr</td>
+<td>string or callable, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>A regression function returning an array of outputs of the linear regression functional basis. The number of observations n_samples should be greater than the size p of this basis. Default assumes a simple constant regression trend. Available built-in regression models are: 'constant', 'linear', 'quadratic'</td>
+</tr>
+<tr>
+<td>corr</td>
+<td>string or callable, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>A stationary autocorrelation function returning the autocorrelation between two points x and x'. Default assumes a squared-exponential autocorrelation model. Built-in correlation models are: 'squared_exponential', 'exponential_periodic'</td>
+</tr>
+<tr>
+<td>theta</td>
+<td>double array_like, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>An array with shape (n_features, ) or (1, ). The parameters in the autocorrelation model. theta is the starting point for the maximum likelihood estimation of the best set of parameters. Default assumes isotropic autocorrelation model with theta0 = 1e-1.</td>
+</tr>
+<tr>
+<td>thetaL</td>
+<td>double array_like, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>An array with shape matching theta0's. Lower bound on the autocorrelation parameters for maximum likelihood estimation.</td>
+</tr>
+<tr>
+<td>thetaU</td>
+<td>double array_like, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>An array with shape matching theta0's. Upper bound on the autocorrelation parameters for maximum likelihood estimation.</td>
+</tr>
+<tr>
+<td>beta0</td>
+<td>double array_like, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The regression weight vector to perform Ordinary Kriging (OK). Default assumes Universal Kriging (UK) so that the vector beta of regression weights is estimated using the maximum likelihood principle.</td>
+</tr>
+<tr>
+<td>try_optimize</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If True, perform maximum likelihood estimation to set the value of theta. Default is True.</td>
+</tr>
+<tr>
+<td>normalize</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Input X and observations y are centered and reduced wrt means and standard deviations estimated from the n_samples observations provided. Default is normalize = True so that data is normalized to ease maximum likelihood estimation.</td>
+</tr>
+<tr>
+<td>reNormalizeY</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Normalize the warped Y values, ie. the values mapping(Yt), before fitting a GP. Default is False.</td>
+</tr>
+<tr>
+<td>n_clusters</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If n_clusters &gt; 1, a latent model is built by clustering the data with K-Means, into n_clusters clusters. Default is 1.</td>
+</tr>
+<tr>
+<td>coef_latent_mapping</td>
+<td>float, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If n_clusters &gt; 1, this coefficient is used to interpolate the mapping function on the whole space from the mapping functions learned on each cluster. This acts as a smoothing parameter : if coef_latent_mapping == 0., each cluster contributes equally, and the greater it is the fewer mapping(x,y) takes into account the clusters in which x is not. Default is 0.5.</td>
+</tr>
+<tr>
+<td>mapWithNoise</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If True and if Y outputs contain multiple noisy observations for the same   x inputs, then all the noisy observations are used to compute Y's distribution  and learn the mapping function. Otherwise, only the mean of the outputs, for a given input x, is considered.    Default is False.</td>
+</tr>
+<tr>
+<td>useAllNoisyY</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>If True and if Y outputs contain multiple noisy observations for the same   x inputs, then all the warped noisy observations are used to fit the GP.    Otherwise, only the mean of the outputs, for a given input x, is considered.    Default is False.</td>
+</tr>
+<tr>
+<td>model_noise</td>
+<td>string, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Method to model the noise.  If not None and if Y outputs contain multiple noisy observations for the same   x inputs, then the nugget (see below) is estimated from the standard    deviation of the multiple outputs for a given input x. Precisely the nugget is multiplied by 100 * std (as data is usually normed and noise is usually  of the order of 1%).    Default is None, methods currently available are : 'EGN' (Estimated Gaussian Noise)</td>
+</tr>
+<tr>
+<td>nugget</td>
+<td>double or ndarray, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>Introduce a nugget effect to allow smooth predictions from noisy data.  If nugget is an ndarray, it must be the same length as the  number of data points used for the fit. The nugget is added to the diagonal of the assumed training covariance; in this way it acts as a Tikhonov regularization in the problem.  In    the special case of the squared exponential correlation function, the   nugget mathematically represents the variance of the input values.  Default assumes a nugget close to machine precision for the sake of robustness (nugget = 10. * MACHINE_EPSILON).</td>
+</tr>
+<tr>
+<td>random_start</td>
+<td>int, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The number of times the Maximum Likelihood Estimation should be performed from a random starting point. The first MLE always uses the specified starting point (theta0),    the next starting points are picked at random according to an   exponential distribution (log-uniform on [thetaL, thetaU]). Default is 5.</td>
+</tr>
+<tr>
+<td>random_state</td>
+<td>integer or numpy.RandomState, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>The generator used to shuffle the sequence of coordinates of theta in   the Welch optimizer. If an integer is given, it fixes the seed. Defaults to the global numpy random number generator.</td>
+</tr>
+<tr>
+<td>verbose</td>
+<td>boolean, optional</td>
+</tr>
+<tr>
+<td></td>
+<td>A boolean specifying the verbose level. Default is verbose = False.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>
+<a id="attributes" class="anchor" href="#attributes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attributes</h4>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>theta</td>
+<td>array</td>
+</tr>
+<tr>
+<td></td>
+<td>Specified theta OR the best set of autocorrelation parameters (the sought maximizer of the reduced likelihood function).</td>
+</tr>
+<tr>
+<td>reduced_likelihood_function_value_</td>
+<td>array</td>
+</tr>
+<tr>
+<td></td>
+<td>The optimal reduced likelihood function value.</td>
+</tr>
+<tr>
+<td>centroids</td>
+<td>array of shape (n_clusters,n_features)</td>
+</tr>
+<tr>
+<td></td>
+<td>If n_clusters &gt; 1, the array of the clusters' centroid.</td>
+</tr>
+<tr>
+<td>density_functions</td>
+<td>list of callable</td>
+</tr>
+<tr>
+<td></td>
+<td>List of length n_clusters, containing the density estimations of the outputs on each cluster.</td>
+</tr>
+<tr>
+<td>mapping</td>
+<td>callable</td>
+</tr>
+<tr>
+<td></td>
+<td>The mapping function such that mapping(Yt) has a gaussian \ distribution, where Yt is the output. The mapping is learned based on the KDE estimation of Yt's distribution</td>
+</tr>
+<tr>
+<td>mapping_inv</td>
+<td>callable</td>
+</tr>
+<tr>
+<td></td>
+<td>The inverse mapping numerically computed by binomial search, such that mapping_inv[mapping(.)] == mapping[mapping_inv(.)] == id</td>
+</tr>
+<tr>
+<td>mapping_derivative</td>
+<td>callable</td>
+</tr>
+<tr>
+<td></td>
+<td>The derivative of the mapping function.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>
+<a id="notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h4>
+
+<p>This code is based on Scikit-learn's GP implementation.</p>
+
+<h4>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span class="octicon octicon-link"></span></a>References</h4>
+
+<p>On Gaussian processes :</p>
+
+<ul>
+<li>
+<code>H.B. Nielsen, S.N. Lophaven, H. B. Nielsen and J. Sondergaard.  DACE - A MATLAB Kriging Toolbox.</code> (2002) <a href="http://www2.imm.dtu.dk/%7Ehbn/dace/dace.pdf">http://www2.imm.dtu.dk/~hbn/dace/dace.pdf</a>
+</li>
+<li>
+<code>W.J. Welch, R.J. Buck, J. Sacks, H.P. Wynn, T.J. Mitchell, and M.D.  Morris (1992). Screening, predicting, and computer experiments.  Technometrics, 34(1) 15--25.</code> <a href="http://www.jstor.org/pss/1269548">http://www.jstor.org/pss/1269548</a>
+</li>
+</ul>
+
+<p>On Gaussian Copula processes :</p>
+
+<ul>
+<li><code>Wilson, A. and Ghahramani, Z. Copula processes. In Advances in NIPS 23, pp. 2460-2468, 2010</code></li>
+</ul>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/sds-dubois/DeepMining">Deep Mining</a> is maintained by <a href="https://github.com/sds-dubois">sds-dubois</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+
