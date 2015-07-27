@@ -5,7 +5,7 @@ sys.path.append("../../")
 from smart_sampling import smartSampling
 from har6 import har6
 
-first_exp = 1
+first_exp = 301
 n_exp = 10
 
 parameter_bounds = np.asarray( [[0,1],[0,1],[0,1],[0,1],[0,1],[0,1]] )
@@ -16,7 +16,7 @@ n_candidates=500
 corr_kernel='squared_exponential'
 acquisition_function = 'MaxUpperBound'
 n_clusters = 1
-cluster_evol = 'constant'
+cluster_evol = 'variable'
 GCP_mapWithNoise=False
 GCP_useAllNoisyY=False
 model_noise=None

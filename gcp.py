@@ -1,6 +1,27 @@
 # Author: Sebastien Dubois 
 #		  for ALFA Group, CSAIL, MIT
 
+# The MIT License (MIT)
+# Copyright (c) 2015 Sebastien Dubois
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 from __future__ import print_function
 
 
@@ -381,43 +402,63 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 	
 		# Perform KMeans and store results
 		if(self.n_clusters > 1):
-			kmeans = KMeans(n_clusters=self.n_clusters)
-			all_data = []
-			for i in range(self.X.shape[0]):
-				all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
-			all_data = np.asarray(all_data)
-			windows_idx = kmeans.fit_predict(all_data)
-			self.centroids = kmeans.cluster_centers_[:,:-1]
-	
-			if(self.verbose):
-				print('All data shape :',all_data.shape)
-				print ("Centroids")
-				print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
-			
-			# Compute the density function for each sub-window
-			density_functions = []
-			clusters_std = []
-			if(self.detailed_raw_y is not None and self.mapWithNoise):
-				detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
-			for w in range(self.n_clusters):
-				if(self.detailed_raw_y is not None and self.mapWithNoise):
-					cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w])[:,0])
-				else:
-					cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
-				clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
-				if(self.verbose):
-					print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
-				density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
-	
-			density_functions = np.asarray( density_functions)
-			self.density_functions = density_functions
-			clusters_std = np.asarray(clusters_std)
-			clusters_std[clusters_std==0] = 1.
-			self.clusters_std = clusters_std
 
-			if(self.verbose):
-				print('---STD---')
-				print(clusters_std)	
+			clustering_pending = True
+			while(clustering_pending and self.n_clusters >1 ):
+				clustering_pending = False
+				kmeans = KMeans(n_clusters=self.n_clusters)
+				all_data = []
+				for i in range(self.X.shape[0]):
+					all_data.append( np.concatenate((self.X[i],self.raw_y[i])))
+				all_data = np.asarray(all_data)
+				windows_idx = kmeans.fit_predict(all_data)
+				self.centroids = kmeans.cluster_centers_[:,:-1]
+		
+				if(self.verbose):
+					print('All data shape :',all_data.shape)
+					print ("Centroids")
+					print (self.X_std*self.centroids + self.X_mean,self.raw_y_std*kmeans.cluster_centers_[:,-1] +self.raw_y_mean)
+				
+				# Compute the density function for each sub-window
+				density_functions = []
+				clusters_std = []
+				if(self.detailed_raw_y is not None and self.mapWithNoise):
+					detailed_windows_idx =reshape_cluster_labels(windows_idx,self.detailed_X)
+				for w in range(self.n_clusters):
+					if(self.detailed_raw_y is not None and self.mapWithNoise):
+						cluster_points_y_values = np.copy((self.detailed_raw_y[ detailed_windows_idx == w])[:,0])
+					else:
+						cluster_points_y_values = np.copy((self.raw_y[ windows_idx == w])[:,0])
+					clusters_std.append( np.std( self.X[ windows_idx == w], axis=0) ) ### this is a (Xdim) array
+					if(self.verbose):
+						print('cluster '+str(w)+' size ' + str(cluster_points_y_values.shape))
+					if(cluster_points_y_values.shape[0] == 1):
+						clustering_pending = True
+					else:
+						density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
+				
+				if(clustering_pending):
+					self.n_clusters -= 1
+					print ('Fail to build ' + str(self.n_clusters) + ' clusters')
+
+				else:
+					density_functions = np.asarray( density_functions)
+					self.density_functions = density_functions
+					clusters_std = np.asarray(clusters_std)
+					clusters_std[clusters_std==0] = 1.
+					self.clusters_std = clusters_std
+
+					if(self.verbose):
+						print('---STD---')
+						print(clusters_std)	
+
+			if(clustering_pending):
+				# n_cluster == 1
+				if(self.detailed_raw_y is not None and self.mapWithNoise):
+					self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
+				else:
+					self.density_functions = np.asarray( [ stats.gaussian_kde(self.raw_y[:,0]) ])	
+
 		else:
 			if(self.detailed_raw_y is not None and self.mapWithNoise):
 				self.density_functions = np.asarray( [ stats.gaussian_kde(self.detailed_raw_y[:,0]) ])
