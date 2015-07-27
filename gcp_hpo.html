@@ -74,7 +74,7 @@ The SmartSmapling function has many parameters but most of them have default val
 <p>The two real examples contained in the repository are the <strong>Sentiment Analysis problem</strong> for IMDB reviews (cf. <a href="https://www.kaggle.com/c/word2vec-nlp-tutorial">Kaggle's competition</a>) in folder Test/Bags_of_Popcorn, and the <strong>Handwritten digits</strong> one from the MNIST database (cf. <a href="https://www.kaggle.com/c/digit-recognizer">Kaggle's competition</a>) in folder Test/MNIST.
 In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders <em>Test/ProblemName/scoring_function</em>. This way, the script run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.</p>
 
-<p><img src="https://raw.githubusercontent.com/sds-dubois/DeepMining/master/Figures/SmartSampling_example.png" alt="Fig1" class="inline"/>
+<p><img src="https://raw.githubusercontent.com/HDI-Project/DeepMining/master/GCP-HPO/Figures/SmartSampling_example.png" alt="Fig1" class="inline"/>
 <em>An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.</em></p>
 
 <h3>
