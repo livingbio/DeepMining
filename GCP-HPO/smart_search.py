@@ -34,6 +34,154 @@ from sklearn.base import is_classifier, clone
 
 class SmartSearch(object):
 	"""
+
+	Parameters
+	----------
+
+	parameters : dict, parameter space on which to optimize the estimator
+		The keys of the dictionnary should be the names of the parameters,
+		and the values should be lists of length 2; the first element being
+		the type of the parameter ('int', 'float' or 'cat' [for categorical]),
+		and the second element being a list of either the bounds between which
+		to search (for 'int' and 'float') or the values the parameter can take
+		(for 'cat')
+		Example : parameters = {'kernel' :  ['cat', ['rbf','poly']],
+    			     			 'd' : ['int', [1,3]],
+    				  			 'C' : ['float',[1,10])}
+
+
+    estimator : 1) sklearn estimator or 2)callable 
+		1 : object type that implements the "fit" and "predict" methods,
+		as a classifier or a pipeline
+		2 : a function that computes the output given a dictionnary of 
+		parameters. The returned value should be a list of one or more 
+		floats if score_format == 'cv', and a float if score_format == 
+		'avg'
+
+	X : array-like, shape = [n_samples, n_features]
+		Training vector, where n_samples in the number of samples and
+		n_features is the number of features.
+
+	y : array-like, shape = [n_samples] or [n_samples, n_output], optional
+		Target relative to X for classification or regression;
+		None for unsupervised learning.
+
+	model : string, optional
+		The model to run.
+		Choose between :
+		- GCP (non-parametric Gaussian Copula Process)
+		- GP (Gaussian Process)
+		- rand (samples at random)
+
+	score_format : string ('cv' or 'avg'), optional
+		'avg' considers only the mean of the CV results while 'cv'
+		stores all values
+		Default is 'cv'
+
+	fit_params : dict, optional
+		Parameters to pass to the fit method.
+
+    scoring : string, callable or None, optional
+        A string (see sklearn's model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y)``.
+        Default is None.
+
+    cv : integer or cross-validation generator, optional
+		Relevant if the estimator is an sklearn object.
+		If an integer is passed, it is the number of folds.
+		Specific cross-validation objects can be passed, see
+		sklearn.cross_validation module for the list of possible objects
+		Default is 3.
+
+	acquisition function : string, optional
+		Function to maximize in order to choose the next parameter to test.
+		- Simple : maximize the predicted output
+		- UCB : maximize the upper confidence bound
+		- EI : maximizes the expected improvement
+		Default is 'UCB'
+
+	corr_kernel : string, optional
+		Correlation kernel to choose for the GCP. 
+		Possible choices are :
+		- exponential_periodic (a linear combination of 3 classic kernels)
+		- squared_exponential
+		Default is 'exponential_periodic'.
+
+	n_iter : int
+		Total number of iterations to perform (including n_init and n_final_iter).
+		Default is 100.
+
+	n_init : int, optional
+		Number of random iterations to perform before the smart sampling.
+		Default is 30.
+
+	n_final_iter : int, optional
+		Number of final iterations, ie. smart iterations but with
+		acquisition_function == 'Simple'
+		Default is 5.
+
+	n_candidates : int, optional
+		Number of random candidates to sample for each GCP / GP iterations
+		Default is 500.
+
+	n_clusters : int, optional
+		Number of clusters used in the parameter space to build a variable mapping for the GCP.
+		Default is 1.
+
+	cluster_evol : string {'constant', 'step', 'variable'}, optional
+		Method used to set the number of clusters.
+		If 'constant', the number of clusters is set with n_clusters.
+		If 'step', start with one cluster, and set n_clusters after 20 smart steps.
+		If 'variable', start with one cluster and increase n_clusters by one every 30 smart steps.
+		Default is constant.
+
+	n_clusters_max : int, optional
+		The maximum value for n_clusters (relevant only if cluster_evol <> 'constant').
+		Default is 5.
+
+	nugget : float, optional
+		The nugget to set for the Gaussian Copula Process or Gaussian Process.
+		Default is 1.e-10.
+
+	GCP_mapWithNoise : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the noisy observations are used to compute Y's distribution
+		and learn the mapping function.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	GCP_useAllNoisyY : boolean, optional
+		If True and if Y outputs contain multiple noisy observations for the same
+		x inputs, then all the warped noisy observations are used to fit the GP.
+		Otherwise, only the mean of the outputs, for a given input x, is considered.
+		Default is False.
+
+	model_noise : string {'EGN',None}, optional
+		Method to model the noise.
+		If not None and if Y outputs contain multiple noisy observations for the same
+		x inputs, then the nugget is estimated from the standard deviation of the multiple 
+		outputs for a given input x.
+		Default is None.
+
+	detailed_res : boolean, optional
+		Specify if the method should return only the parameters and mean outputs or all the details, see below.
+
+
+	Attributes
+	----------
+
+	best_parameter_ : dict, the parameter set, from those tested by the method _fit, that
+		maximizes the mean of the cross-validation results.
+
+	tested_parameters_ : ndarray, the parameters tested by _fit
+
+	cv_scores_ : if score_format == 'cv', list of all the CV results of the parameters
+		tested by _fit;
+				 if score_format == 'avg', array of the mean CV results of the parameters
+		tested by _fit
+
+
     Examples
     --------
     >>> parameters = {'kernel' :  ['cat', ['rbf','poly']],
@@ -45,12 +193,12 @@ class SmartSearch(object):
 	def __init__(self,
 				parameters,
 				estimator,
+				X=None,
+				y=None,
 				model='GCP',
 				score_format = 'cv',
-				scoring=None,
-				X=None,y=None,
 				fit_params=None,
-				refit=True, 
+				scoring=None,
 				cv=None,
 				acquisition_function = 'UCB',
 				corr_kernel= 'squared_exponential',
@@ -65,6 +213,7 @@ class SmartSearch(object):
 				n_final_iter = 5,
 				n_candidates = 500,
 				nugget=1.e-10,
+				detailed_res=True,
 				verbose=True):
 
 		self.parameters = parameters
@@ -96,6 +245,11 @@ class SmartSearch(object):
 		self.model_noise = model_noise		
 		self.GCP_upperBound_coef = 1.96
 		self.nugget = nugget
+		self.detailed_res = self.detailed_res
+
+		self.best_parameters_ = None
+		self.tested_parameters_ = None
+		self.cv_scores_ = None
 
 		if(cluster_evol != 'constant'):
 			self.GCP_args = [corr_kernel, 1,GCP_mapWithNoise,GCP_useAllNoisyY,model_noise,nugget,self.GCP_upperBound_coef]
@@ -122,14 +276,6 @@ class SmartSearch(object):
 				if(parameters[self.param_names[i]][0]=='int'):
 					self.param_bounds[i,1] += 1
 
-		# if(verbose):
-		# print 'parameter bounds :',parameter_bounds
-		# print 'n_parameters :', n_parameters
-		# print 'Nbr of final steps :', n_final_iter
-		# print 'GCP args :',GCP_args
-		# print 'Data size can vary between',data_size_bounds
-		# print 'Nugget :', nugget
-		# print 'GCP_upperBound_coef :',GCP_upperBound_coef
 		if(self.verbose):
 			print(self.parameters)
 			print(self.param_names)
@@ -150,6 +296,20 @@ class SmartSearch(object):
 		return dict_parameter
 
 	def score(self,test_parameter):
+		"""
+		The score function to call in order to evaluate the quality 
+		of the parameter test_parameter
+
+		Parameters
+		----------
+		tested_parameter : dict, the parameter to test
+
+		Returns
+		-------
+		score : the CV score, either the list of all cv results or
+			the mean (depending of score_format)
+		"""
+
 		if not self._callable_estimator:
 	 		cv = check_cv(self.cv, self.X, self.y, classifier=is_classifier(self.estimator))
 	 		cv_score = [ _fit_and_score(clone(self.estimator), self.X, self.y, self.scorer_,
@@ -183,6 +343,17 @@ class SmartSearch(object):
 
 
 	def _fit(self):
+		"""
+		Run the hyper-parameter optimization process
+
+		Returns
+		-------
+		tested_parameters_ : ndarray, the parameters tested during the process
+
+		cv_scores_ : if score_format == 'cv', list of all the CV results of the 
+			parameters tested; if score_format == 'avg', array of the 
+			mean CV results of the parameters tested
+		"""
 
 		n_tested_parameters = 0
 		tested_parameters = np.zeros((self.n_iter,self.n_parameters))
@@ -295,10 +466,19 @@ class SmartSearch(object):
 		vector_best_param = tested_parameters[best_idx]
 		best_parameter = self.vector_to_dict(vector_best_param)
 
+		# store
+		self.best_parameter_ = best_parameter
+		self.tested_parameters_ = tested_parameters[:n_tested_parameters,:]
+
 		if(self.verbose):
 			print ('\nTested ' + str(n_tested_parameters) + ' parameters')
 			print ('Max cv score ' + str(mean_scores[best_idx]))
 			print ('Best parameter ' + str(tested_parameters[best_idx]))
 			print(best_parameter)
 
-		return tested_parameters[:n_tested_parameters,:], cv_scores
+		if(self.detailed_res):
+			self.cv_scores_ = list(cv_scores_)
+			return tested_parameters[:n_tested_parameters,:], cv_scores
+		else:
+			self.cv_scores_ = mean_scores
+			return tested_parameters[:n_tested_parameters,:], mean_scores
