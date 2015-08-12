@@ -294,7 +294,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					temp  =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
 					# if temp is too close to 1, norm.ppf(temp) == Nan
 					# if temp == 0, norm.ppf(temp) == -inf
-					temp = min(0.999999998,temp)
+					temp = min(0.9999999999999999,temp)
 					if(temp == 0):
 						temp = 1e-10
 					val[w] = ( norm.ppf(temp) ) 
@@ -311,18 +311,18 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 				temp = self.density_functions[0].integrate_box_1d(self.low_bound, t)
 				# if temp is too close to 1, norm.ppf(temp) == Nan
 				# if temp == 0, norm.ppf(temp) == -inf
-				temp = min(0.999999998,temp)
+				temp = min(0.9999999999999999,temp)
 				if(temp == 0):
 					temp = 1e-10
 				v = norm.ppf(temp)
 		else:
-			v = 6.3
+			v = 8.3
 			
 		return [v]
 		
 
 	def mapping_inv(self,x,t):
-		if(t< 6.15):
+		if(t<= 8.2):
 			def map(t):
 				return self.mapping(x,t)
 			lo, hi = find_bounds(map, t)
@@ -348,7 +348,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 					coefs[w] =  np.exp(- np.sum( (self.coef_latent_mapping*(x -self.centroids[w])/self.clusters_std)**2. ) )
 					# computing Psi_i (t) 
 					temp =  self.density_functions[w].integrate_box_1d(self.low_bound, t)
-					temp = min(0.999999998,temp)
+					temp = min(0.9999999999999999,temp)
 					temp = max( temp, 1e-10)
 					temp = norm.ppf(temp)
 					# pdf( Psi_i (t))
@@ -366,7 +366,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 
 			else:
 				temp =  self.density_functions[0].integrate_box_1d(self.low_bound, t)
-				temp = min(0.999999998,temp)
+				temp = min(0.9999999999999999,temp)
 				temp = max( temp, 1e-10)
 				temp = norm.ppf(temp)
 				# pdf( Psi (t))
@@ -438,8 +438,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 						density_functions.append(stats.gaussian_kde(cluster_points_y_values) )
 				
 				if(clustering_pending):
-					self.n_clusters -= 1
 					print ('Fail to build ' + str(self.n_clusters) + ' clusters')
+					self.n_clusters -= 1
 
 				else:
 					density_functions = np.asarray( density_functions)
@@ -577,7 +577,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		#print('theta has new shape '+str(self.theta.shape))
 			
 		self.random_state = check_random_state(self.random_state)		
-		X, y = check_arrays(X, y)
+		X, y = sk_utils.check_arrays(X, y)
 
 		# Check shapes of DOE & observations
 		n_samples, n_features = X.shape
@@ -812,6 +812,8 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 		warped_y = np.copy(y)
 		
 		if(transformY):
+			if( np.sum([ y[i][0] > 8.2 for i in range(size)]) >0):
+				print('Warning : mapping_inversion failed')
 			real_y = [ self.mapping_inv(X[i],y[i][0]) for i in range(size)]
 			real_y = self.raw_y_std * np.asarray(real_y) +self.raw_y_mean
 			y = real_y.reshape(n_eval, n_targets)
@@ -874,7 +876,7 @@ class GaussianCopulaProcess(BaseEstimator, RegressorMixin):
 							print(lb,ub)
 							integrated_real_y = [ self.integrate_prediction([warped_y[i]],sigma[i],X[i],lb,ub) for i in range(size)]
 							integrated_real_y =  np.asarray(integrated_real_y)
-
+							print('Integrated prediction')
 							return integrated_real_y,MSE,pred_with_boundL,pred_with_boundU
 
 						else:
