@@ -46,6 +46,7 @@ class SmartSearch(object):
 				parameters,
 				estimator,
 				model='GCP',
+				score_format = 'cv',
 				scoring=None,
 				X=None,y=None,
 				fit_params=None,
@@ -84,6 +85,7 @@ class SmartSearch(object):
 		self.y = y
 
 		self.model = model
+		self.score_format = score_format # 'cv' or 'avg'
 		self.acquisition_function = acquisition_function
 		self.corr_kernel = corr_kernel
 		self.n_clusters = n_clusters
@@ -164,11 +166,18 @@ class SmartSearch(object):
 				n_test_samples += tmp_n_test_samples
 				mean_score += tmp_score
 			mean_score /= float(n_test_samples)
-			# score = mean_score # return this for the average cv
-			score = detailed_score
+
+			if(self.score_format == 'avg'):
+				score = mean_score
+			else: # format == 'cv'
+				score = detailed_score
+
 
 		else:
-			score = self.estimator(test_parameter)
+			if(self.score_format == 'avg'):
+				score = [self.estimator(test_parameter)]
+			else: # format == 'cv'
+				score = self.estimator(test_parameter)
 
 		return score
 
