@@ -27,21 +27,28 @@ from random import randint, randrange
 from gcp import GaussianCopulaProcess
 from sklearn.gaussian_process import GaussianProcess
 from scipy import integrate
-
+from scipy.stats import norm
 
 max_f_value = 1.
 
 #------------------------------------ Utilities for smartSampling ------------------------------------#
 
-def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate(model, X, raw_Y, args, rand_candidates,verbose,acquisition_function='Simple'):
 	
-	if(model == 0):
-		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds,args, rand_candidates,verbose,acquisition_function)
+	mean_Y,std_Y = [],[]
+	for o in raw_Y:
+		mean_Y.append(np.mean(o))
+		std_Y.append(np.std(o))
+	mean_Y = np.asarray(mean_Y)
+	std_Y = np.asarray(std_Y)
+
+	if(model == 'GCP'):
+		best_candidate = find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,verbose,acquisition_function)
 		
-	elif(model == 1):
-		best_candidate = find_best_candidate_with_GP(X, mean_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function)
+	elif(model == 'GP'):
+		best_candidate = find_best_candidate_with_GP(X, mean_Y, args, rand_candidates,verbose,acquisition_function)
 		
-	elif(model == 2):
+	elif(model == 'rand'):
 		best_candidate = rand_candidates[ randint(0,rand_candidates.shape[0]-1)]
 		
 	else:
@@ -50,7 +57,7 @@ def find_best_candidate(model, X, raw_Y,mean_Y,std_Y, data_size_bounds,args, ran
 	return best_candidate
 
 	
-def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,verbose,acquisition_function='Simple'):
 	corr_kernel = args[0]
 	n_clusters = args[1]
 	GCP_mapWithNoise = args[2]
@@ -80,7 +87,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		if(verbose):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
-	elif(acquisition_function=='MaxUpperBound'):
+	elif(acquisition_function=='UCB'):
 	
 		predictions,MSE,boundL,boundU = \
 				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
@@ -104,7 +111,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 				mean_gcp.predict(rand_candidates,eval_MSE=True,transformY=False) # we want the predictions in the GP space
 		y_best = np.max(mean_Y)
 		sigma = np.sqrt(MSE)
-		ei = [ compute_ei((rand_candidates[i]-mean_gcp.X_mean)/mean_gcp.X_std,predictions[i],sigma[i],y_best, \
+		ei = [ gcp_compute_ei((rand_candidates[i]-mean_gcp.X_mean)/mean_gcp.X_std,predictions[i],sigma[i],y_best, \
 						mean_gcp.mapping,mean_gcp.mapping_derivative) \
 				for i in range(rand_candidates.shape[0]) ]
 
@@ -120,12 +127,12 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, data_size_bounds, args
 		
 
 		
-def find_best_candidate_with_GP(X, Y, data_size_bounds, args, rand_candidates,verbose,acquisition_function='Simple'):
+def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_function='Simple'):
 	nugget = args[5]
 
-	gp = GaussianProcess(theta0=1. ,
-						 thetaL = 0.001,
-						 thetaU = 10.,
+	gp = GaussianProcess(theta0=1. * np.ones(X.shape[1]) ,
+						 thetaL = 0.001 * np.ones(X.shape[1]) ,
+						 thetaU = 10. * np.ones(X.shape[1]) ,
 						 nugget=nugget)
 	gp.fit(X,Y)
 	if verbose:
@@ -139,11 +146,23 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, args, rand_candidates,ve
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
-	elif(acquisition_function=='MaxUpperBound'):
+	elif(acquisition_function=='UCB'):
 	
 		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
 		upperBound = predictions + 1.96*np.sqrt(MSE)
 		best_candidate_idx = np.argmax(upperBound)
+		best_candidate = rand_candidates[best_candidate_idx]
+		if(verbose):
+			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
+
+	elif(acquisition_function=='EI'):
+	
+		predictions,MSE = gp.predict(rand_candidates,eval_MSE=True)
+		y_best = np.max(Y)
+		sigma = np.sqrt(MSE)
+		ei = [ gp_compute_ei(predictions[i],sigma[i],y_best) \
+				for i in range(rand_candidates.shape[0]) ]
+		best_candidate_idx = np.argmax(ei)
 		best_candidate = rand_candidates[best_candidate_idx]
 		if(verbose):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
@@ -162,7 +181,22 @@ def find_best_candidate_with_GP(X, Y, data_size_bounds, args, rand_candidates,ve
 
 	return best_candidate
 		
+def sample_candidates(n_candidates,param_bounds,param_isInt):
+	n_parameters = param_isInt.shape[0]
+	candidates = []
 
+	for k in range(n_parameters):
+		if(param_isInt[k]):
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(param_bounds[k][1]-param_bounds[k][0]) + param_bounds[k][0] ,
+								dtype = np.int32)
+		else:
+			k_sample  = np.asarray( np.random.rand(n_candidates) * np.float(param_bounds[k][1]-param_bounds[k][0]) + param_bounds[k][0] )
+		candidates.append(k_sample)
+
+	candidates = np.asarray(candidates)
+	candidates = candidates.T
+
+	return compute_unique1(candidates)
 		
 def sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt):
 	n_parameters = isInt.shape[0]
@@ -236,7 +270,7 @@ def add_results(parameters,raw_outputs,score_outputs,std_outputs,new_param,new_o
 	return parameters,raw_outputs,score_outputs,std_outputs
 
 
-def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
+def gcp_compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
 	# Compute Expected improvement for GCP
 	# m,sigma == mean, std from GP predictions
 	# f_best == current best value observed 
@@ -257,6 +291,14 @@ def compute_ei(x,m,sigma,f_best,Psi,Psi_prim):
 		return temp
 	return integrate.quad(f_to_integrate,0,(2.*max_f_value)-f_best)[0]
 
+def gp_ompute_ei(m,sigma,y_best):
+	# Compute Expected improvement for GP
+	# m,sigma == mean, std from GP predictions
+	# f_best == current best value observed 	ei_array = np.zeros(predictions.shape[0])
+
+	z = (y_best - m) / sigma
+	ei = sigma * (z * norm.cdf(z) + norm.pdf(z))
+	return ei
 
 def compute_unique1(a):
 	# keep only unique values in the ndarray a
