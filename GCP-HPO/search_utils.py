@@ -76,7 +76,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,
 									try_optimize = True)
 	mean_gcp.fit(X,mean_Y,raw_Y,obs_noise=std_Y)
 
-	if verbose:
+	if(verbose == 2):
 		print ('GCP theta :'+str(mean_gcp.theta))
 				
 	if(acquisition_function=='Simple'):
@@ -84,7 +84,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,
 		predictions = mean_gcp.predict(rand_candidates,eval_MSE=False,eval_confidence_bounds=False)
 		best_candidate_idx = np.argmax(predictions)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
 	elif(acquisition_function=='UCB'):
@@ -93,7 +93,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,
 				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundU)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundU[best_candidate_idx]
 
 	elif(acquisition_function=='MaxLowerBound'):
@@ -102,7 +102,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,
 				mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
 		best_candidate_idx = np.argmax(boundL)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], boundL[best_candidate_idx],boundU[best_candidate_idx]
 
 	elif(acquisition_function=='EI'):
@@ -117,7 +117,7 @@ def find_best_candidate_with_GCP(X, raw_Y, mean_Y, std_Y, args, rand_candidates,
 
 		best_candidate_idx = np.argmax(ei)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'Hopefully :', best_candidate, predictions[best_candidate_idx], ei[best_candidate_idx]
 
 	else:
@@ -135,7 +135,7 @@ def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_
 						 thetaU = 10. * np.ones(X.shape[1]) ,
 						 nugget=nugget)
 	gp.fit(X,Y)
-	if verbose:
+	if(verbose == 2):
 		print ('GP theta :'+str(gp.theta_))
 			
 	if(acquisition_function=='Simple'):
@@ -143,7 +143,7 @@ def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_
 		predictions = gp.predict(rand_candidates,eval_MSE=False)
 		best_candidate_idx = np.argmax(predictions)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx]	
 	
 	elif(acquisition_function=='UCB'):
@@ -152,7 +152,7 @@ def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_
 		upperBound = predictions + 1.96*np.sqrt(MSE)
 		best_candidate_idx = np.argmax(upperBound)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
 
 	elif(acquisition_function=='EI'):
@@ -164,7 +164,7 @@ def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_
 				for i in range(rand_candidates.shape[0]) ]
 		best_candidate_idx = np.argmax(ei)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], upperBound[best_candidate_idx]
 
 	elif(acquisition_function=='MaxLowerBound'):
@@ -173,7 +173,7 @@ def find_best_candidate_with_GP(X, Y, args, rand_candidates,verbose,acquisition_
 		lowerBound = predictions - 1.96*np.sqrt(MSE)
 		best_candidate_idx = np.argmax(lowerBound)
 		best_candidate = rand_candidates[best_candidate_idx]
-		if(verbose):
+		if(verbose == 2):
 			print 'GP Hopefully :', best_candidate, predictions[best_candidate_idx], lowerBound[best_candidate_idx]
 	
 	else:
