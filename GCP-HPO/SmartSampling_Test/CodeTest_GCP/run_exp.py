@@ -32,11 +32,10 @@ from sklearn.gaussian_process import GaussianProcess
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
-training_size = 20
+training_size = 50
 nugget = 1.e-10
-n_clusters_max = 5
-corr_kernel = 'squared_exponential'
-integratedPrediction = False
+n_clusters_max = 3
+corr_kernel = 'exponential_periodic' # 'squared_exponential'
 
 def scoring_function(x):
     return (70-7*np.exp(x/50. - ((x-55.)**2)/500.) + 6*np.sin(x/40.) +3./(1.1+np.cos(x/50.)) - 15./(3.3-3*np.sin((x-70)/25.)))/100.
@@ -45,7 +44,7 @@ x_training = []
 y_training = []
 for i in range(training_size):
 	#x = np.random.uniform(parameter_bounds[0][0],parameter_bounds[0][1])
-	x = np.random.uniform(50,350)
+	x = np.random.uniform(0,400)
 	x_training.append(x)
 	y_training.append(scoring_function(x))
 x_training = np.atleast_2d(x_training).T
@@ -69,7 +68,7 @@ for n_clusters in range(1,n_clusters_max+1):
 	                            corr=corr_kernel,
 	                            random_start=5,
 	                            normalize = True,
-	                            coef_latent_mapping = 0.1,
+	                            coef_latent_mapping = 0.4,
 	                            n_clusters=n_clusters)
 	gcp.fit(x_training,y_training)
 	likelihood = gcp.reduced_likelihood_function_value_
@@ -98,8 +97,7 @@ for n_clusters in range(1,n_clusters_max+1):
 	ax1.set_title('n_clusters == ' + str(n_clusters) )
 
 	candidates = np.atleast_2d(range(80)).T * 5
-	#simple_prediction = gcp.predict(candidates,integratedPrediction=False)
-	prediction = gcp.predict(candidates,integratedPrediction=integratedPrediction)
+	prediction = gcp.predict(candidates)
 
 	# plot results
 	abs = range(0,400)
@@ -118,7 +116,7 @@ for n_clusters in range(1,n_clusters_max+1):
 
 gp = GaussianProcess(theta0=.1 ,
 				 thetaL = 0.001,
-				 thetaU = 1.,
+				 thetaU = 10.,
 				 random_start = 5,
 				 nugget=nugget)
 gp.fit(x_training,y_training)
