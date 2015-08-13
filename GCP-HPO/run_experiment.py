@@ -26,17 +26,17 @@ import numpy as np
 import sys
 import os
 from sklearn.neighbors import NearestNeighbors
-from smart_sampling import smartSampling
+from smart_search import SmartSearch
 
 def runExperiment(first_exp,
                   n_exp,
-                  parameter_bounds,
+                  parameters,
                   model = 'GCP',
                   n_random_init = 10,
-                  n_smart_iter = 10,
+                  n_total_iter = 30,
                   n_candidates=500,
                   corr_kernel='squared_exponential',
-                  acquisition_function = 'MaxUpperBound',
+                  acquisition_function = 'UCB',
                   n_clusters = 1,
                   cluster_evol = 'constant',
                   GCP_mapWithNoise=False,
@@ -64,7 +64,10 @@ def runExperiment(first_exp,
   # KNN.kneighbors(p,1,return_distance=False)[0]
 
   # function that retrieves a performance evaluation from the stored results
-  def get_cv_res(p):
+  def get_cv_res(p_dict):
+      p = np.zeros(len(parameters))
+      for k in p_dict.keys():
+        p[int(k)] = p_dict[k]
       idx = KNN.kneighbors(p,1,return_distance=False)[0]
       all_o = output[idx]
       r = np.random.randint(len(all_o)/5)
@@ -81,20 +84,23 @@ def runExperiment(first_exp,
       else:
           print('Warning : directory already exists')
 
-      all_parameters,all_raw_outputs,all_mean_outputs, all_std_outputs, all_param_path = \
-          smartSampling(n_smart_iter,parameter_bounds,get_cv_res,isInt=True,
+      search = SmartSearch(parameters,
+                        estimator = get_cv_res,
                         corr_kernel = corr_kernel ,
                         GCP_mapWithNoise=GCP_mapWithNoise,
                         GCP_useAllNoisyY=GCP_useAllNoisyY,
                         model_noise = model_noise,
                         model = model, 
-                        n_candidates=n_candidates,
-                        n_random_init=n_random_init, 
-                        n_clusters=n_clusters,
+                        n_candidates = n_candidates,
+                        n_iter = n_total_iter,
+                        n_init = n_random_init, 
+                        n_clusters = n_clusters,
                         cluster_evol = cluster_evol,
-                        verbose=True,
+                        verbose = 2,
                         acquisition_function = acquisition_function,
-                        detailed_res = True)
+                        detailed_res = 2)
+
+      all_parameters, all_search_path, all_raw_outputs,all_mean_outputs = search._fit()
 
       ## save experiment's data
       for i in range(len(all_raw_outputs)):
@@ -103,6 +109,6 @@ def runExperiment(first_exp,
               print>>f,line
           f.close()
           np.savetxt(("exp_results/exp"+str(n_exp)+"/param_"+str(i)+".csv"),all_parameters[i], delimiter=",")
-          np.savetxt(("exp_results/exp"+str(n_exp)+"/param_path_"+str(i)+".csv"),all_param_path[i], delimiter=",")
+          np.savetxt(("exp_results/exp"+str(n_exp)+"/param_path_"+str(i)+".csv"),all_search_path[i], delimiter=",")
 
       print ' ****   End experiment',n_exp,'  ****\n'

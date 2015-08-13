@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 from smart_search import SmartSearch
 
 def extend_result(n_tests,tmp_res):
