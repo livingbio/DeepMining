@@ -222,7 +222,7 @@ class SmartSearch(object):
 				n_candidates = 500,
 				nugget=1.e-10,
 				detailed_res=True,
-				verbose=True):
+				verbose=1):
 
 		self.parameters = parameters
 		self.n_parameters = len(parameters)
@@ -253,7 +253,7 @@ class SmartSearch(object):
 		self.model_noise = model_noise		
 		self.GCP_upperBound_coef = 1.96
 		self.nugget = nugget
-		self.detailed_res = self.detailed_res
+		self.detailed_res = detailed_res
 
 		self.best_parameters_ = None
 		self.tested_parameters_ = None
@@ -371,6 +371,9 @@ class SmartSearch(object):
 		init_candidates = utils.sample_candidates(self.n_init,self.param_bounds,self.param_isInt)
 		self.n_init = init_candidates.shape[0]
 
+		if(self.verbose):
+			print('Start random init')
+
 		for i in range(self.n_init):
 			dict_candidate = self.vector_to_dict(init_candidates[i,:])
 			cv_score = self.score(dict_candidate)
@@ -389,7 +392,10 @@ class SmartSearch(object):
 				cv_scores[idx] +=  cv_score
 
 
-		###               Smart Search               ###    
+		###               Smart Search               ### 
+		if(self.verbose):
+			print('Start smart search')
+
 		i_mod_10 = 0  
 		for i in range(self.n_iter - self.n_init - self.n_final_iter):
 
@@ -485,7 +491,7 @@ class SmartSearch(object):
 			print(best_parameter)
 
 		if(self.detailed_res):
-			self.cv_scores_ = list(cv_scores_)
+			self.cv_scores_ = list(cv_scores)
 			return tested_parameters[:n_tested_parameters,:], cv_scores
 		else:
 			self.cv_scores_ = mean_scores
