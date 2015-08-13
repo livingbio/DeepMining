@@ -90,7 +90,7 @@ class SmartSearch(object):
 		If an integer is passed, it is the number of folds.
 		Specific cross-validation objects can be passed, see
 		sklearn.cross_validation module for the list of possible objects
-		Default is 3.
+		Default is 5.
 
 	acquisition function : string, optional
 		Function to maximize in order to choose the next parameter to test.
@@ -207,7 +207,7 @@ class SmartSearch(object):
 				score_format = 'cv',
 				fit_params=None,
 				scoring=None,
-				cv=None,
+				cv=5,
 				acquisition_function = 'UCB',
 				corr_kernel= 'squared_exponential',
 				n_clusters=1,
