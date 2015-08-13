@@ -34,7 +34,6 @@ from sklearn.base import is_classifier, clone
 
 class SmartSearch(object):
 	"""
-
 	Parameters
 	----------
 
@@ -48,7 +47,6 @@ class SmartSearch(object):
 		Example : parameters = {'kernel' :  ['cat', ['rbf','poly']],
     			     			 'd' : ['int', [1,3]],
     				  			 'C' : ['float',[1,10])}
-
 
     estimator : 1) sklearn estimator or 2)callable 
 		1 : object type that implements the "fit" and "predict" methods,
@@ -69,7 +67,7 @@ class SmartSearch(object):
 	model : string, optional
 		The model to run.
 		Choose between :
-		- GCP (non-parametric Gaussian Copula Process)
+		- GCP (non-parametric (Latent) Gaussian Copula Process)
 		- GP (Gaussian Process)
 		- rand (samples at random)
 
@@ -183,10 +181,20 @@ class SmartSearch(object):
 
 
     Examples
-    --------
-    >>> parameters = {'kernel' :  ['cat', ['rbf','poly']],
-    ...   			   'd' : ['int', [1,3]],
-    ...  			   'C' : ['float',[1,10])}
+    -------
+    >>> from sklearn.datasets import load_digits
+	>>> iris = load_digits()
+	>>> X, y = iris.data, iris.target
+	>>> clf = RandomForestClassifier(n_estimators=20)
+	>>> parameters = {"max_depth": ['int',[3, 3]],
+					"max_features": ['int',[1,11]],
+					"min_samples_split": ['int',[1,11]],
+					"min_samples_leaf": ['int',[1,11]],
+					"bootstrap": ['cat',[True, False]],
+					"criterion": ['cat',["gini", "entropy"]]}
+
+	>>> search = GPSearchCV(parameters,estimator=clf,X=X,y=y,n_iter=20)
+	>>> search._fit()
 
     """
 
