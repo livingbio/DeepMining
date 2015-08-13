@@ -162,8 +162,12 @@ class SmartSearch(object):
 		outputs for a given input x.
 		Default is None.
 
-	detailed_res : boolean, optional
-		Specify if the method should return only the parameters and mean outputs or all the details, see below.
+	detailed_res : int, optional
+		Specify the level of details to return.
+		0 : tested parameters and mean outputs
+		1 : tested parameters and list of CV results
+		2 : tested parameters, search path, list of all CV results and mean outputs
+		Default is 1.
 
 
 	Attributes
@@ -221,7 +225,7 @@ class SmartSearch(object):
 				n_final_iter = 5,
 				n_candidates = 500,
 				nugget=1.e-10,
-				detailed_res=True,
+				detailed_res=1,
 				verbose=1):
 
 		self.parameters = parameters
@@ -366,6 +370,8 @@ class SmartSearch(object):
 		n_tested_parameters = 0
 		tested_parameters = np.zeros((self.n_iter,self.n_parameters))
 		cv_scores = []
+		if(self.detailed_res ==2):
+			search_path = np.zeros((self.n_iter,self.n_parameters))
 
 		###    Initialize with random candidates    ### 
 		init_candidates = utils.sample_candidates(self.n_init,self.param_bounds,self.param_isInt)
@@ -390,6 +396,9 @@ class SmartSearch(object):
 				if(self.verbose):
 					print('Hyperparameter already tesed')
 				cv_scores[idx] +=  cv_score
+
+			if(self.detailed_res ==2):
+				search_path[i,:] = init_candidates[i,:]
 
 
 		###               Smart Search               ### 
@@ -435,6 +444,9 @@ class SmartSearch(object):
 					print('Hyperparameter already tesed')
 				cv_scores[idx] += cv_score
 
+			if(self.detailed_res ==2):
+				search_path[i + self.n_init,:] = best_candidate
+
 
 		###               Final steps               ###      
 		self.acquisition_function = 'Simple'
@@ -469,6 +481,9 @@ class SmartSearch(object):
 					print('Hyperparameter already tesed')
 				cv_scores[idx] += cv_score
 
+			if(self.detailed_res ==2):
+				search_path[i + self.n_iter - self.n_final_iter,:] = best_candidate
+
 
 		# compute the averages of CV results
 		mean_scores = []
@@ -490,9 +505,12 @@ class SmartSearch(object):
 			print ('Best parameter ' + str(tested_parameters[best_idx]))
 			print(best_parameter)
 
-		if(self.detailed_res):
+		if(self.detailed_res == 1):
 			self.cv_scores_ = list(cv_scores)
 			return tested_parameters[:n_tested_parameters,:], cv_scores
+		elif(self.detailed_res == 2):
+			self.cv_scores_ = list(cv_scores)
+			return tested_parameters[:n_tested_parameters,:], search_path, cv_scores, mean_scores		
 		else:
 			self.cv_scores_ = mean_scores
 			return tested_parameters[:n_tested_parameters,:], mean_scores
