@@ -4,7 +4,6 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.linear_model import SGDClassifier
-from sklearn.grid_search import GridSearchCV, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 
 import logging
@@ -29,7 +28,7 @@ def test1():
 	X, y = iris.data, iris.target
 	clf = RandomForestClassifier(n_estimators=20)
 
-	# specify parameters and distributions to sample from
+	# specify parameters
 	parameters = {"max_depth": ['int',[3, 3]],
 					"max_features": ['int',[1,11]],
 					"min_samples_split": ['int',[1,11]],
@@ -86,13 +85,13 @@ def test3():
 	    #'vect__max_features': (None, 5000, 10000, 50000),
 	    'vect__ngram_range': ['cat',[(1, 1), (1, 2)]],  # unigrams or bigrams
 	    #'tfidf__use_idf': (True, False),
-	    #'tfidf__norm': ('l1', 'l2'),
-	    'clf__alpha': ['float',[0.000001, 0.00001]],
+	    'tfidf__norm': ('l1', 'l2'),
+	    'clf__alpha': ['float',[0.000001, 0.0001]],
 	    'clf__penalty': ['cat',['l2', 'elasticnet']]
 	    #'clf__n_iter': (10, 50, 80),
 	}
 
-	search = SmartSearch(parameters,estimator=pipeline,X=data.data, y=data.target,n_iter=20)
+	search = SmartSearch(parameters,estimator=pipeline,X=data.data, y=data.target,n_iter=30)
 	search._fit()
 
 
@@ -238,9 +237,10 @@ if __name__ == "__main__":
 	print 'Routine Test'
 	print('Test 2')
 	test2()
-	print('\nTest 1')
-	test1()
-
+	# print('\nTest 1')
+	# test1()
+	print('\nTest 3')
+	test3()
 	# test_name = 'text'
 	# n_tests = 20
 	# search_lenght = 60
