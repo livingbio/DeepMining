@@ -28,10 +28,10 @@ import matplotlib.pyplot as plt
 from sklearn.gaussian_process import GaussianProcess
 
 sys.path.append("../../")
-import sampling_utils as utils 
+import search_utils as utils 
 from gcp import GaussianCopulaProcess
 
-save_plots = False
+save_plots = True
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
@@ -43,10 +43,10 @@ mapWithNoise= False
 model_noise = None
 sampling_model = 'GCP'
 n_candidates= 300
-n_random_init= 10
-nb_GCP_steps = 3
+n_random_init= 5
+nb_GCP_steps = 6
 nb_iter_final = 0
-acquisition_function = 'MaxUpperBound'
+acquisition_function = 'UCB'
 
 window = [0,400,-0.1,1.2]
 verbose = True
@@ -67,7 +67,6 @@ GCP_useAllNoisyY = args[3]
 GCP_model_noise = args[4]
 nugget = args[5]
 GCP_upperBound_coef = args[6]
-data_size_bounds = None
 
 parameters = None
 raw_outputs = None
@@ -83,12 +82,12 @@ if not(nb_GCP_steps% 3 == 0):
 
 if(save_plots):
 	save_data = np.asarray([np.asarray(abs),np.asarray(f_plot)[:,0]]).T
-	np.savetxt('data_plot.csv',save_data,delimiter=',')
+	np.savetxt('data_plots/data_plot.csv',save_data,delimiter=',')
 
 #-------------------- Random initialization --------------------#
 
 # sample n_random_init random parameters to initialize the process
-init_rand_candidates = utils.sample_random_candidates_for_init(n_random_init,parameter_bounds,data_size_bounds,isInt)
+init_rand_candidates = utils.sample_candidates(n_random_init,parameter_bounds,isInt)
 for i in range(init_rand_candidates.shape[0]):
 	print i
 	rand_candidate = init_rand_candidates[i]
@@ -111,10 +110,10 @@ Y_init = list(mean_outputs)
 
 if(save_plots):
 	save_data = np.asarray([X_init[:,0],np.asarray(Y_init)]).T
-	np.savetxt('train_data_plot.csv',save_data,delimiter=',')
+	np.savetxt('data_plots/train_data_plot.csv',save_data,delimiter=',')
 
 for i in range(nb_GCP_steps):
-	rand_candidates = utils.sample_random_candidates(n_candidates,parameter_bounds,data_size_bounds,isInt)
+	rand_candidates = utils.sample_candidates(n_candidates,parameter_bounds,isInt)
 	
 	if(sampling_model == 'GCP'):
 		mean_gcp = GaussianCopulaProcess(nugget = nugget,
@@ -127,7 +126,7 @@ for i in range(nb_GCP_steps):
 										try_optimize = True)
 		mean_gcp.fit(parameters,mean_outputs,raw_outputs,obs_noise=std_outputs)
 
-		if(acquisition_function == 'MaxUpperBound'):
+		if(acquisition_function == 'UCB'):
 			predictions,MSE,boundL,boundU = \
 					mean_gcp.predict(rand_candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = GCP_upperBound_coef)
 			best_candidate_idx = np.argmax(boundU)
@@ -150,7 +149,7 @@ for i in range(nb_GCP_steps):
 
 			if(save_plots):
 				save_data = np.asarray([s_candidates,s_boundL,s_boundU,s_pred]).T
-				np.savetxt('step' +str(i)+ '_data_plot.csv',save_data,delimiter=',')
+				np.savetxt('data_plots/step' +str(i)+ '_data_plot.csv',save_data,delimiter=',')
 
 			new_output = scoring_function(best_candidate)
 			l, = ax.plot(best_candidate,new_output,'yo')
@@ -159,7 +158,7 @@ for i in range(nb_GCP_steps):
 
 			if(save_plots):
 				save_data = np.asarray([best_candidate,new_output]).T
-				np.savetxt('step' +str(i)+ '_nextpoint_plot.csv',save_data,delimiter=',')
+				np.savetxt('data_plots/step' +str(i)+ '_nextpoint_plot.csv',save_data,delimiter=',')
 
 		else:
 			##EI
@@ -228,7 +227,7 @@ for i in range(nb_GCP_steps):
 fig.text(0.5, 0.04, 'Parameter space', ha='center')
 fig.text(0.04, 0.5, 'Performance function', va='center', rotation='vertical')
 
-if(acquisition_function == 'MaxUpperBound'):
+if(acquisition_function == 'UCB'):
 	plt.figlegend((l,l1,l2,l3),('Next point to test','GCP predictions','GCP query points','Random initialization'),loc = 'upper center')
 else:
 	plt.figlegend((l,l1,l2,l3,l4),('Next point to test','GCP predictions','GCP query points','Random initialization','EI'),loc = 'upper center')

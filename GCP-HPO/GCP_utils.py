@@ -67,7 +67,7 @@ def find_bounds(f, y):
 	# to invert a function by binomial search
 
 	x = 1
-	while((f(x) < y)  and (x<2047483646)):
+	while((f(x) < y)  and (x<1000483646) ):
 		x = x * 2
 	lo = -100 
 	if (x ==1):
@@ -81,7 +81,7 @@ def find_bounds(f, y):
 def binary_search(f, y, lo, hi):
 	# to invert a function by binomial search
 
-	delta = np.float(hi-lo)/10000.
+	delta = np.float(hi-lo)/1000000.
 	while lo <= hi:
 		x = (lo + hi) / 2
 		#print(x)
@@ -91,7 +91,7 @@ def binary_search(f, y, lo, hi):
 			hi = x - delta
 		else:
 			return x 
-	if (f(hi) - y < y - f(lo)):
+	if (f(hi)[0] - y < y - f(lo)[0]):
 		return hi
 	else:
 		return lo	

@@ -38,14 +38,12 @@ all_n_clusters = [1,2,3]
 corr_kernel = 'exponential_periodic'
 GCP_mapWithNoise= False
 sampling_model = 'GCP'
-integratedPrediction = False
 coef_latent_mapping = 0.1
-prediction_size = 1000
+prediction_size = 400
 
 ### Set parameters ###
 parameter_bounds = np.asarray( [[0,400]] )
-training_size = 40
-
+training_size = 30
 
 def scoring_function(x):
     return (70-7*np.exp(x/50. - ((x-55.)**2)/500.) + 6*np.sin(x/40.) +3./(1.1+np.cos(x/50.)) - 15./(3.3-3*np.sin((x-70)/25.)))/100.
@@ -61,22 +59,33 @@ for i in range(training_size):
 	y_training.append(scoring_function(x))
 x_training = np.atleast_2d(x_training).T
 
-candidates = []
-real_y = []
-for i in range(prediction_size):
-	x = [np.random.uniform(0,400)]
-	candidates.append(x)
-	real_y.append(scoring_function(x[0]))
-real_y = np.asarray(real_y)
-candidates = np.asarray(candidates)
+g=open('data_EI/training_data.csv','w')
+g.write('x,y\n')
 
-count = -1
+for i in range(training_size):
+	g.write( str(x_training[i]) + ',' + str(y_training[i]) + '\n')
+g.close()
+
+candidates = abs
+# real_y = []
+# for i in range(prediction_size):
+# 	x = [np.random.uniform(0,400)]
+# 	candidates.append(x)
+# 	real_y.append(scoring_function(x[0]))
+# real_y = np.asarray(real_y)
+# candidates = np.asarray(candidates)
+
+count = 0
 fig = plt.figure()
 
 for n_clusters in all_n_clusters:
 
-	count += 2
-	ax = fig.add_subplot(len(all_n_clusters),2,count)
+	f=open('data_EI/cluster' + str(n_clusters) +'.csv','w')
+	f.write('x,y,pred,ei\n')
+
+
+	count += 1
+	ax = fig.add_subplot(len(all_n_clusters),1,count)
 	ax.set_title("GCP prediction")
 
 	gcp = GaussianCopulaProcess(nugget = nugget,
@@ -94,45 +103,30 @@ for n_clusters in all_n_clusters:
 	print 'Theta', gcp.theta
 	print 'Likelihood', np.exp(gcp.reduced_likelihood_function_value_)
 
-	predictions,MSE,boundL,boundU = \
-						gcp.predict(candidates,eval_MSE=True,eval_confidence_bounds=True,coef_bound = 1.96,integratedPrediction=integratedPrediction)
+	predictions = gcp.predict(candidates,eval_MSE=False,eval_confidence_bounds=False,coef_bound = 1.96,integratedPrediction=False)
 
-	pred_error = np.mean( (predictions - np.asarray(real_y) ) **2. )
-	print 'MSE', pred_error / (np.std(real_y) **2.)
+	pred,mse = gcp.predict(candidates,eval_MSE=True,transformY=False)
+	y_best =np.max(y_training)
+	sigma = np.sqrt(mse)
+	ei = [ utils.compute_ei((candidates[i]- gcp.X_mean) / gcp.X_std,pred[i],sigma[i],y_best, \
+	                gcp.mapping,gcp.mapping_derivative) \
+	        for i in range(candidates.shape[0]) ]
+	ei = np.asarray(ei)
+	print ei.shape
 
-	idx = np.argsort(candidates[:,0])
-	s_candidates = candidates[idx,0]
-	s_boundL = boundL[idx]
-	s_boundU = boundU[idx]
-
-	pred,MSE_bis = gcp.predict(np.atleast_2d(s_candidates).T,eval_MSE=True,transformY=False,eval_confidence_bounds=False,coef_bound = 1.96)
-	gp_boundL = pred - 1.96*np.sqrt(MSE_bis)
-	gp_boundU = pred + 1.96*np.sqrt(MSE_bis)
-	t_f_plot =  [gcp.mapping(abs[i],f_plot[i],normalize=True) for i in range(len(f_plot))]
-	t_y_training =  [gcp.mapping(x_training[i],y_training[i],normalize=True) for i in range(len(y_training))]
+	for i in range(abs.shape[0]):
+		f.write( str(candidates[i,0]) + ',' + str(f_plot[i]) +',' + str(predictions[i]) + ',' + str(ei[i]) +'\n' )
+	f.close()
 
 	if(save_plots):
 		save_data = np.asarray([s_candidates,boundL,boundU,predictions,f_plot]).T
 		np.savetxt('data_plot.csv',save_data,delimiter=',')
 
 	ax.plot(abs,f_plot)
-	l1, = ax.plot(candidates,predictions,'r+',label='GCP predictions')
-	l3, = ax.plot(x_training,y_training,'bo',label='Training points')
-	ax.fill(np.concatenate([s_candidates,s_candidates[::-1]]),np.concatenate([s_boundL,s_boundU[::-1]]),alpha=.5, fc='c', ec='None')
+	ax.plot(candidates,predictions,'r+',label='GCP predictions')
+	ax.plot(x_training,y_training,'bo',label='Training points')
+	ax.plot(candidates,100.*ei,'g+',label='EI')
 
-
-	ax = fig.add_subplot(len(all_n_clusters),2,count+1)
-	ax.set_title('GP space')
-	ax.plot(abs,t_f_plot)
-	ax.plot(s_candidates,pred,'r+',label='GCP predictions')
-	ax.plot(x_training,t_y_training,'bo',label='Training points')
-	ax.fill(np.concatenate([s_candidates,s_candidates[::-1]]),np.concatenate([gp_boundL,gp_boundU[::-1]]),alpha=.5, fc='c', ec='None')
-
-	if(save_plots):
-		t_save_data = np.asarray([s_candidates,gp_boundL,gp_boundU,pred,np.asarray(t_f_plot)[:,0]]).T
-		np.savetxt('gpspace_data_plot.csv',t_save_data,delimiter=',')
-		training_points = np.asarray([x_training[:,0],y_training,np.asarray(t_y_training)[:,0]]).T
-		np.savetxt('train_data_plot.csv',training_points,delimiter=',')
 
 plt.legend()
 plt.show()
