@@ -1,6 +1,6 @@
 ## Deep Mining ##
 
-This [project](http://hdi-project.github.io/DeepMining/) is hold by [Kalyan Veeramachaneni](http://www.kalyanv.org/) and the [Alfa Group](http://groups.csail.mit.edu/EVO-DesignOpt/groupWebSite/index.php) at CSAIL, MIT.
+This [project](http://hdi-project.github.io/DeepMining/) is part of the Human Data Interaction project at CSAIL, MIT.
 
 
 ### Contributors ###
