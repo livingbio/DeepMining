@@ -57,7 +57,7 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.</p>
 
 <hr>
 
-<p>One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the <strong>SmartSampling</strong> function, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the <strong>scoring function</strong> which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.</p>
+<p>One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the <strong>SmartSearch</strong> object, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the <strong>scoring function</strong> which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.</p>
 
 <p>To run it on a new pipeline, create a folder <em>newPipeline</em> in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSearch.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user just has to provide a <em>scoring_function</em> and a <em>parameter_bounds</em> array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the <em>scoring_function</em>.</p>
