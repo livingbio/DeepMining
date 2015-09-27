@@ -40,16 +40,16 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.</p>
 <hr>
 
 <ul>
-<li>gcp.py ....................................................................................The class implementing the GCP</li>
-<li>GCP_utils.py ........................................................................................Utility functions for GCP</li>
-<li>smart_sampling.py .........................................................Script to run the optimization process</li>
-<li>sampling_utils.py ....................................................Utility function for the optimization process</li>
-<li>sklearn_utils.py .........................................................................Utility function from Scikit-learn</li>
-<li>run_experiment.py ................................................Script to run several trials on a test instance</li>
-<li>Test/analyze_results.py ...........................The code to compute the Q<sup>1</sup> scores based on a trial</li>
-<li>Test/run_result_analysis.py ...........................................Run analyze_results script and save it</li>
-<li>Test/iterations_needed.py .........Script to compute the iterations needed to reach a given gain</li>
-<li>Test/show_iterations_needed.py ........................................................Display iterationsNeeded</li>
+<li>gcp.py ................................The class implementing the n(L)GCP</li>
+<li>GCP_utils.py ................................Utility functions for n(L)GCP</li>
+<li>smart_sampling.py ................................Script to run the optimization process</li>
+<li>sampling_utils.py ................................Utility function for the optimization process</li>
+<li>sklearn_utils.py ................................Utility function from Scikit-learn</li>
+<li>run_experiment.py ................................Script to run several trials on a test instance</li>
+<li>Test/analyze_results.py ................................Script to compute the Q<sup>1</sup> scores based on a trial</li>
+<li>Test/run_result_analysis.py ................................Run analyze_results script and save it</li>
+<li>Test/iterations_needed.py ................................Script to compute the iterations needed to reach a given gain</li>
+<li>Test/show_iterations_needed.py ................................Display iterationsNeeded</li>
 </ul>
 
 <h3>
@@ -59,7 +59,7 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.</p>
 
 <p>One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the <strong>SmartSampling</strong> function, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the <strong>scoring function</strong> which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.</p>
 
-<p>To run it on a new pipeline, create a folder <em>newPipeline</em> in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
+<p>To run it on a new pipeline, create a folder <em>newPipeline</em> in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSearch.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user just has to provide a <em>scoring_function</em> and a <em>parameter_bounds</em> array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the <em>scoring_function</em>.</p>
 
 <h3>
@@ -67,7 +67,7 @@ The SmartSmapling function has many parameters but most of them have default val
 
 <hr>
 
-<p>This repository contains two tests <strong>CodeTest_GCP</strong> and <strong>CodeTest_SmartSampling</strong> that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see figure below). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.</p>
+<p>This repository contains two tests <strong>CodeTest_GCP</strong> and <strong>CodeTest_SmartSearch</strong> that enable the user to quicly test the GCP and SmartSampling code. The script display_smartSampling enables to simulate a Smart Sampling process while showing the GCP-based predictions and the acquisition functions (see figure below). However this script does not directly use the smartSampling method and thus should not be used for testing purposes, or only after having been modified accordingly.</p>
 
 <p>The <strong>Branin</strong> and <strong>Hartmann 6D</strong> functions are two artificial examples which are standard test instances for optimization processes. Their evaluation is fast so there is no need to store their values in the scoring_function folder. Note that these functions handle floating point so that can be useful for test purposes as the following examples are made with integers.</p>
 
@@ -75,7 +75,7 @@ The SmartSmapling function has many parameters but most of them have default val
 In order to quickly test the optimization process, a lot of off-line computations have already been done and stored in the folders <em>Test/ProblemName/scoring_function</em>. This way, the script run_experiments makes it easy to run fast experiments by querying those files, instead of really building the pipeline for each parameter test.</p>
 
 <p><img src="https://raw.githubusercontent.com/HDI-Project/DeepMining/master/GCP-HPO/Figures/SmartSampling_example.png" alt="Fig1" class="inline"/>
-<em>An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.</em></p>
+<em>An example of the Smart Search process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.</em></p>
 
 <h3>
 <a id="directory-structure" class="anchor" href="#directory-structure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directory structure</h3>
