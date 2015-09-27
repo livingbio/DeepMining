@@ -15,7 +15,7 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 - sampling_utils.py ....................................................Utility function for the optimization process
 - sklearn_utils.py .........................................................................Utility function from Scikit-learn
 - run_experiment.py ................................................Script to run several trials on a test instance
-- Test/analyze_results.py ............................Script to compute the Q<sup>1</sup> scores based on a trial
+- Test/analyze_results.py ..................................Script to compute the Q<sup>1</sup> scores based on a trial
 - Test/run_result_analysis.py ...........................................Run analyze_results script and save it
 - Test/iterations_needed.py .........Script to compute the iterations needed to reach a given gain
 - Test/show_iterations_needed.py ........................................................Display iterationsNeeded
