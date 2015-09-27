@@ -9,13 +9,13 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 
 ### Python scripts ###
 -------------------------------
-- gcp.py ....................................................................................The class implementing the GCP
-- GCP_utils.py ........................................................................................Utility functions for GCP
+- gcp.py ..............................................................................The class implementing the n(L)GCP
+- GCP_utils.py ..................................................................................Utility functions for n(L)GCP
 - smart_sampling.py .........................................................Script to run the optimization process
 - sampling_utils.py ....................................................Utility function for the optimization process
 - sklearn_utils.py .........................................................................Utility function from Scikit-learn
 - run_experiment.py ................................................Script to run several trials on a test instance
-- Test/analyze_results.py ...........................The code to compute the Q<sup>1</sup> scores based on a trial
+- Test/analyze_results.py ............................Script to compute the Q<sup>1</sup> scores based on a trial
 - Test/run_result_analysis.py ...........................................Run analyze_results script and save it
 - Test/iterations_needed.py .........Script to compute the iterations needed to reach a given gain
 - Test/show_iterations_needed.py ........................................................Display iterationsNeeded
@@ -24,9 +24,9 @@ All the code is in Python and mainly uses Numpy, Scipy and Scikit-learn.
 
 ### Instructions ###
 -------------------------------
-One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSampling** function, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
+One can easily run a GCP-based hyperparameter optimization process thanks to this code. This is mostly done by the **SmartSearch** object, which iteratively ask to assess the quality of a selected hyperparameter set. This quality should be returned by the **scoring function** which is implemented by the user and depends on the pipeline. This function should return a list of performance estimations, which would usually be either a single estimation or all k-fold cross-validation results.
 
-To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSampling.
+To run it on a new pipeline, create a folder *newPipeline* in the Test folder, and create a Python script as run_exp.py in CodeTest_SmartSearch.
 The SmartSmapling function has many parameters but most of them have default values. Basically the user just has to provide a *scoring_function* and a *parameter_bounds* array (n_parameters,2). The software will try to find the best parameter set within these ranges by iteratively calling the *scoring_function*.
 
 ### Examples ###
@@ -40,7 +40,7 @@ In order to quickly test the optimization process, a lot of off-line computation
 
 
 ![Fig1](Figures/SmartSampling_example.png?raw=true)
-*An example of the Smart Sampling process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.*
+*An example of the Smart Search process. The function to optimize is the blue line, and we start the process with 10 random points for which we know the real value (blue points). At each step, the performance function is modeled by a GCP and predictions are made (red crosses) based on the known data (blue and red points). The cyan zone shows the 95% condifence bounds. At each step the selected point (the one that maximizes the upper confidence bound) is shown in yellow. This point is then added to the known data so that the model becomes more and more accurate.*
 
 
 ### Directory structure ###
